@@ -1,0 +1,16 @@
+name: CI Pipeline
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      FONTAWESOME_TOKEN: ${{ secrets.REMOVED_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - run: npm ci --prefix frontend
+      - run: pip install -r backend/requirements.txt 

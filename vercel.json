@@ -1,0 +1,17 @@
+{
+  "builds": [
+    {
+      "src": "frontend/package.json",
+      "use": "@sveltejs/vercel"
+    }
+  ],
+  "routes": [
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/frontend"
+    }
+  ]
+} 
