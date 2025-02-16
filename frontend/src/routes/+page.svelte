@@ -1,8 +1,8 @@
 <script lang="ts">
 	import Counter from '$lib/components/Counter.svelte';
-	import welcome from '$lib/images/svelte-welcome.webp';
-	import welcomeFallback from '$lib/images/svelte-welcome.png';
-	import Calendar from '$lib/components/Calendar.svelte';
+	import universal from '$lib/images/6716fab0513f2918a063e314_universal.svg';
+	import agents from '$lib/images/6716fb3943b30134feb5ff9a_agents.svg';
+	// import Calendar from '$lib/components/Calendar.svelte';
 	import Calendar2 from '$lib/components/Calendar2.svelte';
 	import ChatInput from '$lib/components/ChatInput.svelte';
 	import TestComponent from '$lib/components/TestComponent.svelte';
@@ -14,35 +14,30 @@
 </svelte:head>
 
 <section class="w-full">
-	<h1>
-		<span class="welcome">
-			<picture>
-				<source srcset={welcome} type="image/webp" />
-				<img src={welcomeFallback} alt="Welcome" />
-			</picture>
+	<h1 class="mt-16 lg:mt-24 mb-16 lg:mb-24">
+		<span class="logo">
+			<div class="flex flex-col sm:flex-row items-center justify-center gap-0 sm:gap-6">
+				<img 
+					src={universal} 
+					alt="Universal" 
+					class="w-[300px] sm:w-[400px] lg:w-[500px] max-w-full" 
+				/>
+				<img 
+					src={agents} 
+					alt="Agents" 
+					class="w-[225px] sm:w-[300px] lg:w-[375px] max-w-full translate-y-[16px] -mt-2 sm:mt-0" 
+				/>
+			</div>
 		</span>
-
-		to your new<br />SvelteKit app
 	</h1>
 
-	<h2>
-		try editing <strong>src/routes/+page.svelte</strong>
-	</h2>
-
-	<div class="space-y-6 w-full">
+	<div class="space-y-8 lg:space-y-12 w-full">
 		<ChatInput />
-		<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-			<div>
-				<h3 class="h3 mb-2">Flatpickr Calendar</h3>
-				<Calendar />
-			</div>
-			<div>
-				<h3 class="h3 mb-2">DaisyUI Calendar</h3>
-				<Calendar2 />
-			</div>
+		<div class="w-full">
+			<Calendar2 />
 		</div>
-		<Counter />
-		<TestComponent />
+		<!-- <Counter /> -->
+		<!-- <TestComponent /> -->
 	</div>
 </section>
 
@@ -58,19 +53,8 @@
 		width: 100%;
 	}
 
-	.welcome {
+	.logo {
 		display: block;
-		position: relative;
 		width: 100%;
-		height: 0;
-		padding: 0 0 calc(100% * 495 / 2048) 0;
-	}
-
-	.welcome img {
-		position: absolute;
-		width: 100%;
-		height: 100%;
-		top: 0;
-		display: block;
 	}
 </style>

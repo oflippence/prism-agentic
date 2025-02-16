@@ -20,15 +20,10 @@
 <svelte:window on:click={handleClickOutside} />
 
 <div class="theme-switcher relative">
-    <button
-        class="btn btn-sm variant-ghost-surface"
-        on:click={() => isOpen = !isOpen}
-        aria-label="Select theme"
-        aria-expanded={isOpen}
-        aria-controls="theme-menu"
-    >
-        🎨
-    </button>
+    <!-- Use slot for custom button -->
+    <div on:click={() => isOpen = !isOpen}>
+        <slot />
+    </div>
 
     {#if isOpen}
         <div

@@ -144,11 +144,11 @@ export default {
 							"--color-error-800": "127 15 71", // #7f0f47
 							"--color-error-900": "104 12 58", // #680c3a
 							// surface | #222222 
-							"--color-surface-50": "222 222 222", // #dedede
-							"--color-surface-100": "211 211 211", // #d3d3d3
-							"--color-surface-200": "200 200 200", // #c8c8c8
-							"--color-surface-300": "167 167 167", // #a7a7a7
-							"--color-surface-400": "100 100 100", // #646464
+							"--color-surface-50": "245 245 245", // #f5f5f5
+							"--color-surface-100": "227 227 227", // #e3e3e3
+							"--color-surface-200": "209 209 209", // #d1d1d1
+							"--color-surface-300": "191 191 191", // #bfbfbf
+							"--color-surface-400": "170 170 170", // #aaaaaa
 							"--color-surface-500": "34 34 34", // #222222
 							"--color-surface-600": "31 31 31", // #1f1f1f
 							"--color-surface-700": "26 26 26", // #1a1a1a
