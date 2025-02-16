@@ -1,6 +1,8 @@
 <script lang="ts">
 	import '../app.css';
-	import { AppShell, AppBar } from '@skeletonlabs/skeleton';
+	import { AppBar } from '@skeletonlabs/skeleton';
+	import ThemeSwitcher from '$lib/components/ThemeSwitcher.svelte';
+	import { onMount } from 'svelte';
 
 	// Handle theme toggle
 	function toggleTheme() {
@@ -10,47 +12,53 @@
 		html.classList.add(currentTheme);
 		localStorage.setItem('theme', currentTheme);
 	}
+
+	// Set dark mode by default
+	onMount(() => {
+		const html = document.documentElement;
+		const storedTheme = localStorage.getItem('theme');
+		if (!storedTheme) {
+			html.classList.add('dark');
+			localStorage.setItem('theme', 'dark');
+		} else {
+			html.classList.add(storedTheme);
+		}
+	});
 </script>
 
-<!-- App Shell -->
-<AppShell>
-	<svelte:fragment slot="header">
-		<!-- App Bar -->
-		<AppBar class="fixed top-0 left-0 right-0 z-10 px-4">
-			<svelte:fragment slot="lead">
-				<strong class="text-xl uppercase">My App</strong>
-			</svelte:fragment>
-			<svelte:fragment slot="trail">
-				<div class="flex items-center gap-4">
-					<a class="btn btn-sm variant-ghost-surface" href="/">Home</a>
-					<a class="btn btn-sm variant-ghost-surface" href="/about">About</a>
-					<button 
-						class="btn btn-sm variant-ghost-surface" 
-						on:click={toggleTheme}
-						aria-label="Toggle theme"
-					>
-						🌓
-					</button>
-				</div>
-			</svelte:fragment>
-		</AppBar>
-	</svelte:fragment>
-	<!-- Page Route Content -->
-	<main class="container mx-auto p-4 pt-20 space-y-8 w-full">
-		<slot />
+<!-- Root layout -->
+<div class="h-full flex flex-col overflow-hidden">
+	<!-- Header (fixed) -->
+	<AppBar class="sticky top-0 z-10">
+		<svelte:fragment slot="lead">
+			<strong class="text-xl uppercase">My App</strong>
+		</svelte:fragment>
+		<svelte:fragment slot="trail">
+			<div class="flex items-center gap-4">
+				<a class="btn btn-sm variant-ghost-surface" href="/">Home</a>
+				<a class="btn btn-sm variant-ghost-surface" href="/about">About</a>
+				<ThemeSwitcher />
+				<button 
+					class="btn btn-sm variant-ghost-surface" 
+					on:click={toggleTheme}
+					aria-label="Toggle theme"
+				>
+					🌓
+				</button>
+			</div>
+		</svelte:fragment>
+	</AppBar>
+
+	<!-- Main Content (scrollable) -->
+	<main class="flex-1 overflow-y-auto w-full">
+		<div class="container mx-auto px-4 py-4 space-y-8 max-w-7xl">
+			<slot />
+		</div>
 	</main>
-</AppShell>
+</div>
 
 <style>
-	main {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		max-width: 64rem;
-		box-sizing: border-box;
-	}
-
-	@media (min-width: 480px) {
-		
+	:global(html, body) {
+		@apply h-full overflow-hidden;
 	}
 </style>
