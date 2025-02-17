@@ -1,18 +1,66 @@
-<script>
+<script lang="ts">
   // Import icons directly from Font Awesome Pro packages
   import { faPaperclip, faCamera, faAngleDown, faChevronRight } from '@fortawesome/pro-solid-svg-icons';
   import { faGoogleDrive as faGoogleDriveBrand } from '@fortawesome/free-brands-svg-icons/faGoogleDrive';
+  import { createEventDispatcher } from 'svelte';
 
+  const dispatch = createEventDispatcher();
   let inputValue = '';
-  let selectedModel = 'Claude 3.5 Sonnet';
+  let selectedModel = 'claude-3-sonnet';
+  let isLoading = false;
+
+  async function handleSubmit() {
+    if (!inputValue.trim()) return;
+    
+    isLoading = true;
+    try {
+      const response = await fetch('http://localhost:3000/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: inputValue,
+          model: selectedModel
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to get response');
+      }
+      
+      const data = await response.json();
+      dispatch('message', {
+        question: inputValue,
+        answer: data.response
+      });
+      
+      // Clear input after successful send
+      inputValue = '';
+    } catch (error: any) {
+      console.error('Error sending message:', error);
+      dispatch('error', { error: error.message || 'Failed to get response from chatbot' });
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  function handleKeyDown(event: KeyboardEvent) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      handleSubmit();
+    }
+  }
 </script>
 
 <div class="w-full">
   <div class="w-full bg-surface-50-900-token border custom-border rounded-container-token p-4">
     <div class="bg-white rounded-container-token p-3 mb-3">
       <textarea
-        placeholder="How can Prism help you today?"
+        placeholder="How can we help you today?"
         bind:value={inputValue}
+        on:keydown={handleKeyDown}
         rows="1"
         class="w-full min-h-[48px] p-2 bg-white text-surface-900 resize-none text-base focus:outline-none placeholder:text-surface-400"
       ></textarea>
@@ -24,7 +72,7 @@
           bind:value={selectedModel} 
           class="custom-select"
         >
-          <option value="Claude 3.5 Sonnet">Claude 3.5 Sonnet</option>
+          <option value="claude-3-sonnet">Claude 3 Sonnet</option>
           <!-- Add other models as needed -->
         </select>
         <svg 
@@ -69,7 +117,12 @@
         </button>
       </div>
       
-      <button class="btn-icon bg-primary-600 hover:bg-primary-700" aria-label="Submit">
+      <button 
+        class="btn-icon bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed" 
+        aria-label="Submit"
+        on:click={handleSubmit}
+        disabled={isLoading || !inputValue.trim()}
+      >
         <svg class="w-3.5 h-3.5 text-black fill-current" viewBox={`0 0 ${faChevronRight.icon[0]} ${faChevronRight.icon[1]}`}>
           <path d={String(faChevronRight.icon[4])} />
         </svg>

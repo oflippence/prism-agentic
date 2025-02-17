@@ -6,6 +6,23 @@
 	import Calendar2 from '$lib/components/Calendar2.svelte';
 	import ChatInput from '$lib/components/ChatInput.svelte';
 	import TestComponent from '$lib/components/TestComponent.svelte';
+
+	type Message = {
+		question: string;
+		answer: string;
+	};
+
+	let messages: Message[] = [];
+	let error: string | null = null;
+
+	function handleMessage(event: CustomEvent<Message>) {
+		messages = [...messages, event.detail];
+		error = null;
+	}
+
+	function handleError(event: CustomEvent<{error: string}>) {
+		error = event.detail.error;
+	}
 </script>
 
 <svelte:head>
@@ -32,12 +49,31 @@
 	</h1>
 
 	<div class="space-y-8 lg:space-y-12 w-full">
-		<ChatInput />
-		<div class="w-full">
-			<Calendar2 />
-		</div>
-		<!-- <Counter /> -->
-		<!-- <TestComponent /> -->
+		<ChatInput on:message={handleMessage} on:error={handleError} />
+		
+		{#if error}
+			<div class="w-full p-4 bg-red-100 text-red-700 rounded-container-token">
+				{error}
+			</div>
+		{/if}
+
+		{#if messages.length > 0}
+			<div class="w-full space-y-6">
+				{#each messages as message}
+					<div class="w-full space-y-4">
+						<div class="bg-surface-100-800-token p-4 rounded-container-token">
+							<p class="font-semibold">You:</p>
+							<p>{message.question}</p>
+						</div>
+						<div class="bg-primary-100 dark:bg-primary-900 p-4 rounded-container-token">
+							<p class="font-semibold">Universal Agents:</p>
+							<p class="whitespace-pre-wrap">{message.answer}</p>
+						</div>
+					</div>
+				{/each}
+			</div>
+		{/if}
+
 	</div>
 </section>
 
