@@ -4,6 +4,8 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 from services.anthropic_client import AnthropicClient
+from services.openai_client import OpenAIClient
+from services.perplexity_client import PerplexityClient
 from config.system_prompts import UNIVERSAL_AGENTS_PROMPT
 
 # Get the directory containing this file
@@ -25,15 +27,27 @@ class UniversalAgents:
         self.available_clients = {}
 
         if os.getenv("ANTHROPIC_API_KEY"):
-            self.available_clients["claude-3-sonnet"] = AnthropicClient()
+            # Latest Claude models
+            self.available_clients["claude-3-5-sonnet-20240620"] = AnthropicClient()
+            self.available_clients["claude-3-opus-20240229"] = AnthropicClient()
+            self.available_clients["claude-3-5-haiku-20241022"] = AnthropicClient()
 
-        # Future client initialization
-        # if os.getenv("OPENAI_API_KEY"):
-        #     self.available_clients["gpt-4"] = OpenAIClient()
-        # if os.getenv("PERPLEXITY_API_KEY"):
-        #     self.available_clients["pplx-70b"] = PerplexityClient()
+        if os.getenv("OPENAI_API_KEY"):
+            # Latest GPT and Reasoning Models
+            self.available_clients["gpt-4o"] = OpenAIClient()  # Latest GPT-4o flagship
+            self.available_clients["gpt-4o-mini"] = OpenAIClient()
+            # Fast, affordable GPT-4o
+            self.available_clients["o1"] = OpenAIClient()  # Complex reasoning
+            self.available_clients["o1-mini"] = OpenAIClient()  # Fast reasoning
+            self.available_clients["o3-mini"] = OpenAIClient()  # Latest fast reasoning
 
-    def get_response(self, user_input, model="claude-3-sonnet"):
+        if os.getenv("PERPLEXITY_API_KEY"):
+            self.available_clients["sonar-reasoning-pro"] = PerplexityClient()
+            self.available_clients["sonar-reasoning"] = PerplexityClient()
+            self.available_clients["sonar-pro"] = PerplexityClient()
+            self.available_clients["sonar"] = PerplexityClient()
+
+    def get_response(self, user_input, model="claude-3-5-sonnet-20240620"):
         """Get response from selected AI provider"""
         try:
             if model not in self.available_clients:

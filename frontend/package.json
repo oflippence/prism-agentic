@@ -35,8 +35,6 @@
 		"@fortawesome/pro-regular-svg-icons": "^6.5.2",
 		"@fortawesome/pro-solid-svg-icons": "^6.5.2",
 		"@fortawesome/pro-thin-svg-icons": "^6.5.2",
-		"daisyui": "^4.12.23",
-		"flatpickr": "^4.6.13",
-		"svelte-flatpickr": "^3.3.5"
+		"daisyui": "^4.12.23"
 	}
 }

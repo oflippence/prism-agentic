@@ -1,0 +1,11 @@
+# Flatpickr Dependencies Reference
+These dependencies were removed when upgrading to Svelte 5 but kept here for future reference:
+
+```json
+{
+    "flatpickr": "^4.6.13",
+    "svelte-flatpickr": "^3.3.5"
+}
+```
+
+Note: These packages were removed due to incompatibility with Svelte 5. If needed in the future, check for Svelte 5 compatible versions or alternatives. 

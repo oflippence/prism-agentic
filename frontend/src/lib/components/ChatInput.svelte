@@ -6,7 +6,7 @@
 
   const dispatch = createEventDispatcher();
   let inputValue = '';
-  let selectedModel = 'claude-3-sonnet';
+  let selectedModel = 'claude-3-5-sonnet-20240620';
   let isLoading = false;
 
   async function handleSubmit() {
@@ -72,8 +72,29 @@
           bind:value={selectedModel} 
           class="custom-select"
         >
-          <option value="claude-3-sonnet">Claude 3 Sonnet</option>
-          <!-- Add other models as needed -->
+          <!-- Anthropic Models -->
+          <optgroup label="Anthropic">
+            <option value="claude-3-5-sonnet-20240620">Claude 3.5 Sonnet</option>
+            <option value="claude-3-opus-20240229">Claude 3 Opus</option>
+            <option value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</option>
+          </optgroup>
+
+          <!-- OpenAI Models -->
+          <optgroup label="OpenAI">
+            <option value="gpt-4o">GPT-4o (Latest Flagship)</option>
+            <option value="gpt-4o-mini">GPT-4o Mini (Fast & Affordable)</option>
+            <option value="o1">O1 (Complex Reasoning)</option>
+            <option value="o1-mini">O1 Mini (Fast Reasoning)</option>
+            <option value="o3-mini">O3 Mini (Latest Fast Reasoning)</option>
+          </optgroup>
+
+          <!-- Perplexity Models -->
+          <optgroup label="Perplexity">
+            <option value="sonar-reasoning-pro">Sonar Reasoning Pro (127k)</option>
+            <option value="sonar-reasoning">Sonar Reasoning (127k)</option>
+            <option value="sonar-pro">Sonar Pro (200k)</option>
+            <option value="sonar">Sonar (127k)</option>
+          </optgroup>
         </select>
         <svg 
           class="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none w-3 h-3 text-surface-900-50-token fill-current" 
