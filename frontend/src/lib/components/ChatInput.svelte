@@ -14,7 +14,8 @@
     
     isLoading = true;
     try {
-      const response = await fetch('http://localhost:3000/chat', {
+      // Send to chat endpoint for immediate response
+      const chatResponse = await fetch('http://localhost:3000/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -25,16 +26,32 @@
         })
       });
       
-      if (!response.ok) {
-        const errorData = await response.json();
+      if (!chatResponse.ok) {
+        const errorData = await chatResponse.json();
         throw new Error(errorData.error || 'Failed to get response');
       }
       
-      const data = await response.json();
+      const chatData = await chatResponse.json();
       dispatch('message', {
         question: inputValue,
-        answer: data.response
+        answer: chatData.response
       });
+
+      // Send to n8n webhook for enhancement and Slack posting
+      const n8nResponse = await fetch('http://localhost:5678/webhook/enhance-message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: inputValue,
+          model: selectedModel
+        })
+      });
+
+      if (!n8nResponse.ok) {
+        console.error('Failed to send to n8n webhook:', await n8nResponse.text());
+      }
       
       // Clear input after successful send
       inputValue = '';
