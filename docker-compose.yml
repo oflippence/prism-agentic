@@ -4,7 +4,7 @@ services:
     build: 
       context: ./backend
     ports:
-      - "3000:3000"
+      - "3001:3001"
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
@@ -13,6 +13,9 @@ services:
       - ./backend:/app
     networks:
       - app-network
+    depends_on:
+      n8n:
+        condition: service_started
 
   n8n:
     image: n8nio/n8n
@@ -23,27 +26,45 @@ services:
       - DB_TYPE=sqlite
       - DB_SQLITE_PATH=/home/node/.n8n/database.sqlite
       
-      # Web interface authentication (optional in development)
+      # Web interface authentication
       - N8N_BASIC_AUTH_ACTIVE=false
       
+      # Security configuration
+      - N8N_SECURE_COOKIE=false
+      - N8N_PROTOCOL=http
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_EDITOR_BASE_URL=http://localhost:5678
+      
       # Webhook and API authentication
-      - N8N_WEBHOOK_TEST_URL=http://localhost:5678/
-      - N8N_WEBHOOK_URL=${N8N_HOST:-http://localhost:5678}
+      - N8N_WEBHOOK_TEST_URL=http://n8n:5678/
+      - N8N_WEBHOOK_URL=${N8N_HOST:-http://n8n:5678}
       - N8N_WEBHOOK_SECRET=${N8N_WEBHOOK_SECRET}
       
       # General configuration
-      - N8N_HOST=${N8N_HOST:-http://localhost:5678}
-      - N8N_PROTOCOL=http
       - N8N_PORT=5678
-      - N8N_EDITOR_BASE_URL=${N8N_HOST:-http://localhost:5678}
       
-      # Optional: Set these for production
-      # - N8N_BASIC_AUTH_USER=admin
-      # - N8N_BASIC_AUTH_PASSWORD=${N8N_API_KEY}
+      # AI Provider API Keys - explicitly set with actual values
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
+      
+      # Credentials encryption
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      
+      # Debug mode for troubleshooting
+      - N8N_LOG_LEVEL=debug
     volumes:
       - ./.n8n:/home/node/.n8n
     networks:
       - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:5678/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 networks:
   app-network:

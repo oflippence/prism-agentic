@@ -1,0 +1,399 @@
+{
+  "name": "Workflow Test 2",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chat",
+        "responseMode": "lastNode",
+        "responseData": "noData",
+        "options": {}
+      },
+      "id": "7165cd11-cf56-4691-b40b-07d90ee39684",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -1040,
+        260
+      ],
+      "webhookId": "e4e68306-94f2-42e5-8f0a-0f8746318693"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Check environment variables\nconst envVars = {\n  ANTHROPIC_API_KEY: $env.ANTHROPIC_API_KEY ? 'Set (first 4 chars: ' + $env.ANTHROPIC_API_KEY.substring(0, 4) + ')' : 'Not set',\n  OPENAI_API_KEY: $env.OPENAI_API_KEY ? 'Set (first 4 chars: ' + $env.OPENAI_API_KEY.substring(0, 4) + ')' : 'Not set',\n  PERPLEXITY_API_KEY: $env.PERPLEXITY_API_KEY ? 'Set (first 4 chars: ' + $env.PERPLEXITY_API_KEY.substring(0, 4) + ')' : 'Not set'\n};\n\n// Log to console\nconsole.log('Environment Variables Status:', envVars);\n\n// Pass through the input data plus debug info\nreturn {\n  ...items[0].json,\n  debug: {\n    environmentStatus: envVars\n  }\n};"
+      },
+      "id": "5ef34db4-629a-452c-b4f1-6960bd26d159",
+      "name": "Debug Environment",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -580,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.body.model }}",
+        "rules": {
+          "rules": [
+            {
+              "operation": "startsWith",
+              "value2": "claude"
+            },
+            {
+              "operation": "startsWith",
+              "value2": "gpt",
+              "output": 1
+            },
+            {
+              "operation": "startsWith",
+              "value2": "sonar",
+              "output": 2
+            }
+          ]
+        }
+      },
+      "id": "bba07029-3ae6-4fba-af43-c53691e676e5",
+      "name": "Select Model",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        -320,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.ANTHROPIC_API_KEY }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"{{ $json.body.model }}\",\n  \"messages\": [{\"role\": \"user\", \"content\": \"{{ $json.body.message }}\"}],\n  \"system\": \"{{ $json.body.system_prompt }}\",\n  \"max_tokens\": 1024\n}",
+        "options": {}
+      },
+      "id": "aeb0b007-19c4-464c-97f1-fc7e607694e8",
+      "name": "Claude API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.OPENAI_API_KEY }}"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"model\": \"{{ $json.body.model }}\", \"messages\": [{\"role\": \"system\", \"content\": \"{{ $json.body.system_prompt }}\"}, {\"role\": \"user\", \"content\": \"{{ $json.body.message }}\"}], \"max_tokens\": 1024 }",
+        "options": {}
+      },
+      "id": "60b0cbd6-7f9c-4ea3-ae8a-a76502ea226a",
+      "name": "OpenAI API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        0,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.PERPLEXITY_API_KEY }}"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"model\": \"{{ $json.body.model }}\", \"messages\": [{\"role\": \"user\", \"content\": \"{{ $json.body.message }}\"}], \"system\": \"{{ $json.body.system_prompt }}\", \"max_tokens\": 1024 }",
+        "options": {}
+      },
+      "id": "34cecce9-69ce-49e1-a88f-346d04f55d7d",
+      "name": "Perplexity API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        0,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "question",
+              "value": "={{ $('Edit Fields').item.json[\"original-message\"] }}"
+            },
+            {
+              "name": "answer",
+              "value": "={{ $json.content?.[0]?.text || $json.choices?.[0]?.message?.content || $json.content || $json.response }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "effe4ce0-ed37-4be4-a420-deaf19a89b06",
+      "name": "Prepare Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        360,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C08E71W1C2V",
+          "mode": "list",
+          "cachedResultName": "n8n-enhance-message-test"
+        },
+        "text": "=New message from Universal Agents:\n\nUser: {{ $('Edit Fields').item.json[\"original-message\"] }}\n\nResponse: {{ $json.content?.[0]?.text || $json.choices?.[0]?.message?.content || $json.content || $json.response }}",
+        "otherOptions": {
+          "unfurl_links": false,
+          "unfurl_media": false
+        }
+      },
+      "id": "61f6b0cb-9dfb-4533-b9f4-358de8326efe",
+      "name": "Send to Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [
+        360,
+        360
+      ],
+      "webhookId": "2c6e7635-c617-4982-878c-ba6bdb91f9be",
+      "credentials": {
+        "slackApi": {
+          "id": "BNokhrU6KVKaB8Tq",
+          "name": "Slack account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5f19defc-df4c-4688-a584-a9fc5ce09364",
+              "name": "original-message",
+              "value": "={{ $json.body.message }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -800,
+        260
+      ],
+      "id": "fd62b5eb-c9a8-40b6-8008-3dee00985418",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "localhost:5678",
+            "connection": "keep-alive",
+            "content-length": "55",
+            "sec-ch-ua-platform": "\"macOS\"",
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Not(A:Brand\";v=\"99\", \"Brave\";v=\"133\", \"Chromium\";v=\"133\"",
+            "content-type": "application/json",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "sec-gpc": "1",
+            "accept-language": "en-GB,en;q=0.5",
+            "origin": "http://localhost:5173",
+            "sec-fetch-site": "same-site",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://localhost:5173/",
+            "accept-encoding": "gzip, deflate, br, zstd"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "message": "Test",
+            "model": "claude-3-5-sonnet-20240620"
+          },
+          "webhookUrl": "http://localhost:5678/webhook/chat",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Debug Environment": {
+      "main": [
+        [
+          {
+            "node": "Select Model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Model": {
+      "main": [
+        [
+          {
+            "node": "Claude API",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "OpenAI API",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Perplexity API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude API": {
+      "main": [
+        [
+          {
+            "node": "Prepare Response",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI API": {
+      "main": [
+        [
+          {
+            "node": "Prepare Response",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity API": {
+      "main": [
+        [
+          {
+            "node": "Prepare Response",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Debug Environment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "bcb5ff9e-c0d6-4371-866d-7e39ded9b6e5",
+  "meta": {
+    "instanceId": "7d772b4433e23b35cf3a147f8350f4c70d34366d4a860615e17e6d8a252774c3"
+  },
+  "id": "GeHV1eXKPcENdogi",
+  "tags": []
+}

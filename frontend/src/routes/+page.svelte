@@ -9,7 +9,7 @@
 
 	type Message = {
 		question: string;
-		answer: string;
+		answer: string | null;
 	};
 
 	let messages: Message[] = [];
@@ -17,6 +17,14 @@
 
 	function handleMessage(event: CustomEvent<Message>) {
 		messages = [...messages, event.detail];
+		error = null;
+	}
+
+	function handleUpdate(event: CustomEvent<Message>) {
+		const { question, answer } = event.detail;
+		messages = messages.map(msg => 
+			msg.question === question ? { ...msg, answer } : msg
+		);
 		error = null;
 	}
 
@@ -49,7 +57,11 @@
 	</h1>
 
 	<div class="space-y-8 lg:space-y-12 w-full">
-		<ChatInput on:message={handleMessage} on:error={handleError} />
+		<ChatInput 
+			on:message={handleMessage} 
+			on:update={handleUpdate}
+			on:error={handleError} 
+		/>
 		
 		{#if error}
 			<div class="w-full p-4 bg-red-100 text-red-700 rounded-container-token">
@@ -65,10 +77,17 @@
 							<p class="font-semibold">You:</p>
 							<p>{message.question}</p>
 						</div>
-						<div class="bg-primary-100 dark:bg-primary-900 p-4 rounded-container-token">
-							<p class="font-semibold">Universal Agents:</p>
-							<p class="whitespace-pre-wrap">{message.answer}</p>
-						</div>
+						{#if message.answer === null}
+							<div class="bg-primary-100 dark:bg-primary-900 p-4 rounded-container-token">
+								<p class="font-semibold">Universal Agents:</p>
+								<p class="text-surface-600-300-token">Thinking...</p>
+							</div>
+						{:else}
+							<div class="bg-primary-100 dark:bg-primary-900 p-4 rounded-container-token">
+								<p class="font-semibold">Universal Agents:</p>
+								<p class="whitespace-pre-wrap">{message.answer}</p>
+							</div>
+						{/if}
 					</div>
 				{/each}
 			</div>

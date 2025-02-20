@@ -1,0 +1,181 @@
+{
+  "name": "Get System Prompt",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chat",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "e62a4136-e1c8-4ff4-aff6-f3c3134bc572",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        260,
+        -600
+      ],
+      "webhookId": "ad682002-a62b-4bfb-b3bf-453f02960bac"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:3000/webhook/n8n",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"chat\",\n  \"payload\": {\n    \"message\": \"={{$json.body.message}}\",\n    \"model\": \"={{$json.body.model}}\"\n  }\n}",
+        "options": {}
+      },
+      "id": "e1b693ef-f075-4240-9173-caa1ba9fcc3c",
+      "name": "Get System Prompt",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        440,
+        -600
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "8cb3e67f-6504-4ec6-912d-c78bdb5c6921",
+      "name": "Merge System Prompt",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        620,
+        -600
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.body.model }}",
+        "rules": {
+          "rules": [
+            {
+              "operation": "startsWith",
+              "value2": "claude"
+            }
+          ]
+        }
+      },
+      "id": "9ff2f848-701e-4276-a214-ebb133a7fb00",
+      "name": "Select Model",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        800,
+        -600
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericHeader",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"model\": \"{{$json.body.model}}\", \"messages\": [{\"role\": \"user\", \"content\": \"{{$json.body.message}}\"}], \"system\": \"{{$json.body.system_prompt}}\", \"max_tokens\": 1024 }",
+        "options": {}
+      },
+      "id": "b042c428-4b3c-42f6-87bf-247dfbbb6b51",
+      "name": "Claude API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1100,
+        -700
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "e53afed0-c56f-4fe5-b582-953b1335dc8f",
+      "name": "Prepare Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        -600
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get System Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get System Prompt": {
+      "main": [
+        [
+          {
+            "node": "Merge System Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge System Prompt": {
+      "main": [
+        [
+          {
+            "node": "Select Model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Model": {
+      "main": [
+        [
+          {
+            "node": "Claude API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude API": {
+      "main": [
+        [
+          {
+            "node": "Prepare Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "07aba811-40a0-4deb-b59b-20d9f7722010",
+  "meta": {
+    "instanceId": "7d772b4433e23b35cf3a147f8350f4c70d34366d4a860615e17e6d8a252774c3"
+  },
+  "id": "vf0o994Q84bIBfLy",
+  "tags": []
+}

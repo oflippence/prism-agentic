@@ -16,3 +16,13 @@ Thumbs.db
 
 # Keep empty directories
 !.gitkeep
+
+# n8n
+.n8n/
+
+# Node modules
+node_modules/
+
+# Environment variables
+.env
+.env.*

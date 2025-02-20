@@ -1,0 +1,154 @@
+{
+  "name": "Universal Agents Chat",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "chat",
+        "httpMethod": "POST",
+        "responseMode": "lastNode"
+      },
+      "id": "webhook-node",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://backend:3000/webhook/n8n",
+        "method": "POST",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParametersUi": {
+          "parameter": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"action\": \"chat\", \"payload\": { \"message\": {{$json.body.message}}, \"model\": {{$json.body.model}} } }"
+      },
+      "id": "get-system-prompt",
+      "name": "Get System Prompt",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "mode": "mergeByPosition",
+        "fields": {
+          "values": [
+            {
+              "name": "body",
+              "type": "object",
+              "value": "={{ { ...($input.item.json.body || {}), system_prompt: $input.item.json.system_prompt } }}"
+            }
+          ]
+        }
+      },
+      "id": "merge-system-prompt",
+      "name": "Merge System Prompt",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [550, 300]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.body.model }}",
+        "rules": {
+          "rules": [
+            {
+              "operation": "startsWith",
+              "value2": "claude"
+            }
+          ]
+        }
+      },
+      "id": "switch-node",
+      "name": "Select Model",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "method": "POST",
+        "authentication": "genericHeader",
+        "genericAuthenticationHeader": "x-api-key",
+        "genericAuthenticationValue": "={{ $env.ANTHROPIC_API_KEY }}",
+        "headerParametersUi": {
+          "parameter": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"model\": \"{{$json.body.model}}\", \"messages\": [{\"role\": \"user\", \"content\": \"{{$json.body.message}}\"}], \"system\": \"{{$json.body.system_prompt}}\", \"max_tokens\": 1024 }"
+      },
+      "id": "claude-node",
+      "name": "Claude API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [850, 200]
+    },
+    {
+      "parameters": {
+        "mode": "mergeByPosition",
+        "fields": {
+          "values": [
+            {
+              "name": "response",
+              "type": "string",
+              "value": "={{ $json.content?.[0]?.text || $json.choices?.[0]?.message?.content || $json.content || $json.response }}"
+            }
+          ]
+        }
+      },
+      "id": "prepare-response",
+      "name": "Prepare Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [1000, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{"node": "Get System Prompt", "type": "main", "index": 0}]]
+    },
+    "Get System Prompt": {
+      "main": [[{"node": "Merge System Prompt", "type": "main", "index": 0}]]
+    },
+    "Merge System Prompt": {
+      "main": [[{"node": "Select Model", "type": "main", "index": 0}]]
+    },
+    "Select Model": {
+      "main": [[{"node": "Claude API", "type": "main", "index": 0}]]
+    },
+    "Claude API": {
+      "main": [[{"node": "Prepare Response", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {},
+  "staticData": null,
+  "tags": ["chat", "ai", "universal-agents"],
+  "triggerCount": 0,
+  "updatedAt": "2024-02-19T13:30:00.000Z",
+  "versionId": "2.0"
+} 

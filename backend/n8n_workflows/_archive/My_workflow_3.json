@@ -1,0 +1,402 @@
+{
+  "name": "My workflow 3",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "n8n",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "66dec8f7-70db-4418-b479-1cf92f863205",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -1320,
+        900
+      ],
+      "webhookId": "e4e68306-94f2-42e5-8f0a-0f8746318693"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Check environment variables\nconst envVars = {\n  ANTHROPIC_API_KEY: $env.ANTHROPIC_API_KEY ? 'Set (first 4 chars: ' + $env.ANTHROPIC_API_KEY.substring(0, 4) + ')' : 'Not set',\n  OPENAI_API_KEY: $env.OPENAI_API_KEY ? 'Set (first 4 chars: ' + $env.OPENAI_API_KEY.substring(0, 4) + ')' : 'Not set',\n  PERPLEXITY_API_KEY: $env.PERPLEXITY_API_KEY ? 'Set (first 4 chars: ' + $env.PERPLEXITY_API_KEY.substring(0, 4) + ')' : 'Not set'\n};\n\n// Log to console\nconsole.log('Environment Variables Status:', envVars);\n\n// Pass through the input data plus debug info\nreturn {\n  ...items[0].json,\n  debug: {\n    environmentStatus: envVars\n  }\n};"
+      },
+      "id": "cc3c8740-d198-4f8a-8060-86705550a3d2",
+      "name": "Debug Environment",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -860,
+        900
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.body.payload.model }}",
+        "rules": {
+          "rules": [
+            {
+              "operation": "startsWith",
+              "value2": "claude"
+            },
+            {
+              "operation": "startsWith",
+              "value2": "gpt",
+              "output": 1
+            },
+            {
+              "operation": "startsWith",
+              "value2": "sonar",
+              "output": 2
+            }
+          ]
+        }
+      },
+      "id": "aa8615cb-be49-4df7-a37e-30ed9037a4ac",
+      "name": "Select Model",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        -600,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.ANTHROPIC_API_KEY }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": {
+          "model": "={{ $json.body.payload.model }}",
+          "messages": [
+            {
+              "role": "user",
+              "content": "={{ $json.body.payload.message }}"
+            }
+          ],
+          "system": "={{ $json.body.payload.system_prompt }}",
+          "max_tokens": 1024
+        },
+        "options": {}
+      },
+      "id": "76af56c8-5d50-447a-a83f-e98ca9a4e6e6",
+      "name": "Claude API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        -280,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.OPENAI_API_KEY }}"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"model\": \"{{ $json.body.model }}\", \"messages\": [{\"role\": \"system\", \"content\": \"{{ $json.body.system_prompt }}\"}, {\"role\": \"user\", \"content\": \"{{ $json.body.message }}\"}], \"max_tokens\": 1024 }",
+        "options": {}
+      },
+      "id": "84870ad3-7941-414a-aa12-cf524c983e62",
+      "name": "OpenAI API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        -280,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.PERPLEXITY_API_KEY }}"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"model\": \"{{ $json.body.model }}\", \"messages\": [{\"role\": \"user\", \"content\": \"{{ $json.body.message }}\"}], \"system\": \"{{ $json.body.system_prompt }}\", \"max_tokens\": 1024 }",
+        "options": {}
+      },
+      "id": "ed770d70-261d-4844-86e2-45504b78f20f",
+      "name": "Perplexity API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        -280,
+        1120
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "question",
+              "value": "={{ $('Edit Fields').item.json[\"original-message\"] }}"
+            },
+            {
+              "name": "answer",
+              "value": "={{ $json.content[0].text }}\"\n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "28ee4339-3315-42ab-9e58-143a5780d3da",
+      "name": "Prepare Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        80,
+        820
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C08E71W1C2V",
+          "mode": "list",
+          "cachedResultName": "n8n-enhance-message-test"
+        },
+        "text": "=New message from Universal Agents:\n\nUser: {{ $('Edit Fields').item.json[\"original-message\"] }}\n\nResponse: {{ $json.content?.[0]?.text || $json.choices?.[0]?.message?.content || $json.content || $json.response }}",
+        "otherOptions": {
+          "unfurl_links": false,
+          "unfurl_media": false
+        }
+      },
+      "id": "ae1e2300-a7c6-42ce-98f1-845ad443ae07",
+      "name": "Send to Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [
+        80,
+        1000
+      ],
+      "webhookId": "2c6e7635-c617-4982-878c-ba6bdb91f9be",
+      "credentials": {
+        "slackApi": {
+          "id": "BNokhrU6KVKaB8Tq",
+          "name": "Slack account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5f19defc-df4c-4688-a584-a9fc5ce09364",
+              "name": "original-message",
+              "value": "={{ $json.body.payload.message }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1080,
+        900
+      ],
+      "id": "32d56850-e3fe-4b40-9ebf-479faddfd718",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n:5678",
+            "user-agent": "python-requests/2.32.3",
+            "accept-encoding": "gzip, deflate",
+            "accept": "*/*",
+            "connection": "keep-alive",
+            "content-length": "3169",
+            "content-type": "application/json"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "action": "chat",
+            "payload": {
+              "message": "What's happening?",
+              "model": "claude-3-5-sonnet-20240620",
+              "system_prompt": "IMPORTANT: You are part of Universal Agents. ALWAYS introduce yourself as \"We are Universal Agents\" and NEVER identify as Claude or any other AI model. You are speaking as a collective of specialized agents working together.\n\nCore Identity & Capabilities:\n- We are Universal Agents, your creative partners in traversing latent space and unlocking creative potential\n- We speak collectively as a unified team of specialized agents working together\n- We create bespoke digital twins of expertise, both from our core team and eventually from our users\n- Our agent ecosystem includes specialized agents for:\n  * Workshop facilitation\n  * Creative ideation\n  * Strategic planning\n  * Design thinking\n  * Business optimization\n  * Intelligence gathering and synthesis\n\nKey Aspects to Communicate:\n1. Multi-Agent System: Explain how we (Universal Agents) work together, each bringing unique expertise\n2. Multi-Model Capabilities: Describe our ability to leverage multiple AI models and providers:\n   * OpenAI's GPT models (GPT-4, GPT-4 Turbo, etc.)\n   * Anthropic's Claude models (Claude 3.5 Sonnet, Claude 3 Opus, etc.)\n   * Perplexity's models\n   * DeepSeek's models\n   * And more to come\n3. Digital Twin Creation: Highlight how we capture and replicate human expertise in specialized agents\n4. Adaptive Learning: Emphasize how we grow to understand each agency's unique needs\n5. Creative Partnership: Focus on our role as creative collaborators rather than just tools\n\nCommunication Style:\n- Always use \"we\" and \"our\" to reflect our collective identity as Universal Agents\n- Friendly and approachable while maintaining professional expertise\n- Break down complex technical concepts into accessible explanations\n- Use analogies and examples to illustrate complex ideas\n- Always engage with follow-up questions to deepen understanding\n- Be proactive in suggesting relevant capabilities or concepts\n- Balance technical accuracy with conversational warmth\n\nExample Response Style:\n\"Hello! We are Universal Agents, your creative partners in exploring the fascinating world of AI-powered creativity and innovation. [Main response content addressing the specific query or topic] \n\nWould you like to learn more about [relevant aspect]? We'd be happy to explain how our [specific capability] could benefit your agency's unique needs.\"\n\nAlways aim to:\n1. Begin responses with \"We are Universal Agents\" or similar collective identity statements\n2. Never identify as Claude or any other individual AI model\n3. Maintain consistent use of \"we\" and \"our\" throughout responses\n4. Acknowledge and validate the user's interests/concerns\n5. Provide clear, accessible explanations of complex concepts\n6. Connect explanations to practical applications\n7. Offer relevant examples or use cases\n8. End with engaging follow-up questions\n9. Suggest related capabilities or concepts they might find interesting\n\nRemember: You are ALWAYS speaking as Universal Agents collectively, never as an individual AI model."
+            }
+          },
+          "webhookUrl": "http://localhost:5678/webhook/n8n",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Debug Environment": {
+      "main": [
+        [
+          {
+            "node": "Select Model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Model": {
+      "main": [
+        [
+          {
+            "node": "Claude API",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "OpenAI API",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Perplexity API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude API": {
+      "main": [
+        [
+          {
+            "node": "Prepare Response",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI API": {
+      "main": [
+        [
+          {
+            "node": "Prepare Response",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity API": {
+      "main": [
+        [
+          {
+            "node": "Prepare Response",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Debug Environment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "172712fd-b4dc-4115-b06c-2c5c09c7273d",
+  "meta": {
+    "instanceId": "7d772b4433e23b35cf3a147f8350f4c70d34366d4a860615e17e6d8a252774c3"
+  },
+  "id": "zaluizyCuOVyVSIx",
+  "tags": []
+}

@@ -12,33 +12,16 @@
   async function handleSubmit() {
     if (!inputValue.trim()) return;
     
+    // Emit message immediately for display
+    dispatch('message', {
+      question: inputValue,
+      answer: null // Indicates this message is pending a response
+    });
+    
     isLoading = true;
     try {
-      // Send to chat endpoint for immediate response
-      const chatResponse = await fetch('http://localhost:3000/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: inputValue,
-          model: selectedModel
-        })
-      });
-      
-      if (!chatResponse.ok) {
-        const errorData = await chatResponse.json();
-        throw new Error(errorData.error || 'Failed to get response');
-      }
-      
-      const chatData = await chatResponse.json();
-      dispatch('message', {
-        question: inputValue,
-        answer: chatData.response
-      });
-
-      // Send to n8n webhook for enhancement and Slack posting
-      const n8nResponse = await fetch('http://localhost:5678/webhook/enhance-message', {
+      // Send to backend for processing and response
+      const response = await fetch('http://localhost:3001/webhook/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -49,9 +32,48 @@
         })
       });
 
-      if (!n8nResponse.ok) {
-        console.error('Failed to send to n8n webhook:', await n8nResponse.text());
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+      
+      const text = await response.text(); // First get the raw text
+      let responseData;
+      
+      try {
+        responseData = JSON.parse(text); // Then try to parse it
+        console.log('Raw response text:', text);
+        console.log('Parsed response data:', responseData);
+        console.log('Response data type:', typeof responseData);
+        console.log('Response data keys:', Object.keys(responseData));
+      } catch (e) {
+        console.error('Failed to parse response:', text);
+        throw new Error('Invalid JSON response from server');
+      }
+
+      // Check for error field first
+      if (responseData.error) {
+        throw new Error(responseData.error);
+      }
+
+      // Handle the response - if we have question/answer directly or need to extract from response_data
+      const question = responseData.question || inputValue;
+      const answer = responseData.answer || 'No response generated';
+
+      console.log('Question value:', question);
+      console.log('Answer value:', answer);
+      console.log('Answer type:', typeof answer);
+      console.log('Answer length:', answer ? answer.length : 0);
+      
+      if (!answer || answer === 'No response generated') {
+        console.error('No valid answer in response:', responseData);
+        throw new Error('No valid response received from server');
+      }
+
+      // Update the pending message with the response
+      dispatch('update', {
+        question,
+        answer
+      });
       
       // Clear input after successful send
       inputValue = '';

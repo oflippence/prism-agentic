@@ -3,7 +3,12 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from chatbot.universal_agents import UniversalAgents
+from config.system_prompts import UNIVERSAL_AGENTS_PROMPT
 import os
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+import time
 
 app = Flask(__name__)
 CORS(app)
@@ -13,6 +18,17 @@ chatbot = UniversalAgents()
 
 # Webhook secret for n8n authentication
 WEBHOOK_SECRET = os.getenv("N8N_WEBHOOK_SECRET")
+
+# Configure retry strategy
+retry_strategy = Retry(
+    total=3,  # number of retries
+    backoff_factor=1,  # wait 1, 2, 4 seconds between retries
+    status_forcelist=[500, 502, 503, 504],  # retry on these status codes
+)
+http_adapter = HTTPAdapter(max_retries=retry_strategy)
+session = requests.Session()
+session.mount("http://", http_adapter)
+session.mount("https://", http_adapter)
 
 # Enhancement prompts
 ENHANCEMENT_PROMPTS = {
@@ -34,24 +50,27 @@ Enhanced version (maintain concise yet comprehensive format):""",
 }
 
 
-@app.route("/chat", methods=["POST"])
-def chat():
-    """Handle chat requests"""
-    try:
-        data = request.json
-        message = data.get("message")
-        model = data.get("model", "claude-3-sonnet")
-
-        if not message:
-            return jsonify({"error": "No message provided"}), 400
-
-        print(f"\nReceived request - Message: {message}, Model: {model}")
-
-        response = chatbot.get_response(message, model=model)
-        return jsonify({"response": response})
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+# @app.route("/chat", methods=["POST"])
+# def chat():
+#     """[DEPRECATED] Direct chat endpoint - Now handled by n8n workflow
+#     This endpoint was previously used for direct chat requests but has been replaced
+#     by n8n workflows to allow for more flexible agent configuration and processing.
+#     See /webhook/n8n endpoint for the new implementation."""
+#     try:
+#         data = request.json
+#         message = data.get("message")
+#         model = data.get("model", "claude-3-sonnet")
+#
+#         if not message:
+#             return jsonify({"error": "No message provided"}), 400
+#
+#         print(f"\nReceived request - Message: {message}, Model: {model}")
+#
+#         response = chatbot.get_response(message, model=model)
+#         return jsonify({"response": response})
+#
+#     except Exception as e:
+#         return jsonify({"error": str(e)}), 500
 
 
 @app.route("/enhance-message", methods=["POST"])
@@ -89,6 +108,169 @@ def enhance_message():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/webhook/chat", methods=["POST"])
+def chat_webhook():
+    """Handle chat webhook from frontend"""
+    try:
+        data = request.json
+        message = data.get("message")
+        model = data.get("model", "claude-3-5-sonnet-20240620")
+
+        if not message:
+            return jsonify({"error": "No message provided"}), 400
+
+        print(f"\n[DEBUG] Attempting to forward message to n8n:")
+        print(f"[DEBUG] Message: {message}")
+        print(f"[DEBUG] Model: {model}")
+        print(f"[DEBUG] Target URL: http://n8n:5678/webhook/n8n")
+
+        max_retries = 3
+        retry_delay = 2  # seconds
+
+        for attempt in range(max_retries):
+            try:
+                print(f"\n[DEBUG] Attempt {attempt + 1}/{max_retries}")
+
+                # Forward to n8n for processing
+                n8n_response = session.post(
+                    "http://n8n:5678/webhook/n8n",
+                    json={
+                        "action": "chat",
+                        "payload": {
+                            "message": message,
+                            "model": model,
+                            "system_prompt": UNIVERSAL_AGENTS_PROMPT,
+                        },
+                    },
+                    timeout=30,  # Increased timeout
+                )
+
+                print(f"[DEBUG] n8n Response Status: {n8n_response.status_code}")
+                print(f"[DEBUG] n8n Response Headers: {dict(n8n_response.headers)}")
+                print(
+                    f"[DEBUG] n8n Response Content: {n8n_response.text[:500]}..."
+                )  # Print first 500 chars
+
+                if n8n_response.ok:
+                    break  # Success, exit retry loop
+
+                error_message = f"n8n error (status {n8n_response.status_code}): {n8n_response.text}"
+                print(
+                    f"[DEBUG] Error from n8n (attempt {attempt + 1}/{max_retries}): {error_message}"
+                )
+
+                if attempt < max_retries - 1:  # Don't sleep on last attempt
+                    print(
+                        f"[DEBUG] Waiting {retry_delay} seconds before next attempt..."
+                    )
+                    time.sleep(retry_delay)
+                    retry_delay *= 2  # Exponential backoff
+                else:
+                    return jsonify({"error": error_message}), 502
+
+            except requests.exceptions.ConnectionError as e:
+                error_message = f"Could not connect to n8n (attempt {attempt + 1}/{max_retries}). Error: {str(e)}"
+                print(f"[DEBUG] Connection Error: {error_message}")
+
+                if attempt < max_retries - 1:
+                    print(
+                        f"[DEBUG] Waiting {retry_delay} seconds before next attempt..."
+                    )
+                    time.sleep(retry_delay)
+                    retry_delay *= 2
+                else:
+                    return jsonify({"error": error_message}), 503
+
+            except requests.exceptions.Timeout as e:
+                error_message = f"Request to n8n timed out (attempt {attempt + 1}/{max_retries}). Error: {str(e)}"
+                print(f"[DEBUG] Timeout Error: {error_message}")
+
+                if attempt < max_retries - 1:
+                    print(
+                        f"[DEBUG] Waiting {retry_delay} seconds before next attempt..."
+                    )
+                    time.sleep(retry_delay)
+                    retry_delay *= 2
+                else:
+                    return jsonify({"error": error_message}), 504
+
+        # Get the response data from n8n
+        try:
+            response_data = n8n_response.json()
+            print(f"[DEBUG] Raw n8n response text: {n8n_response.text}")
+            print(f"[DEBUG] Successfully parsed n8n response: {response_data}")
+            print(f"[DEBUG] Response data type: {type(response_data)}")
+
+            # Handle different response formats
+            answer = None
+            if isinstance(response_data, dict):
+                # First try standard response formats
+                answer = (
+                    response_data.get("answer")
+                    or response_data.get("response")
+                    or response_data.get("result")
+                    or response_data.get("output")
+                )
+
+                # If no direct answer, try to extract from Slack message format
+                if not answer and "message" in response_data:
+                    message_text = response_data["message"].get("text", "")
+                    # Try to extract the response part
+                    if "Response:" in message_text:
+                        # Split on "Response:" and take everything after it
+                        parts = message_text.split("Response:", 1)
+                        if len(parts) > 1:
+                            answer = parts[1].strip()
+                    else:
+                        # If no "Response:" marker, just use the whole message
+                        answer = message_text
+
+                if not answer and "data" in response_data:
+                    data = response_data["data"]
+                    if isinstance(data, dict):
+                        answer = (
+                            data.get("answer")
+                            or data.get("response")
+                            or data.get("result")
+                            or data.get("output")
+                        )
+            elif isinstance(response_data, str):
+                # If response is just a string, use it as the answer
+                answer = response_data
+
+            if not answer:
+                print(f"[DEBUG] Could not find answer in response: {response_data}")
+                return jsonify(
+                    {
+                        "error": "No valid response found in n8n output",
+                        "raw_response": response_data,
+                    }
+                ), 502
+
+            formatted_response = {
+                "question": message,  # Use original message as question
+                "answer": answer,
+            }
+            print(
+                f"[DEBUG] Extracted answer from response: {answer[:100]}..."
+            )  # Print first 100 chars
+            print(
+                f"[DEBUG] Sending formatted response to frontend: {formatted_response}"
+            )
+            return jsonify(formatted_response)
+        except ValueError as e:
+            error_message = (
+                f"Invalid JSON response from n8n: {n8n_response.text[:500]}..."
+            )
+            print(f"[DEBUG] JSON Parse Error: {error_message}")
+            return jsonify({"error": error_message}), 502
+
+    except Exception as e:
+        error_message = f"Unexpected error: {str(e)}"
+        print(f"[DEBUG] Unexpected Error: {error_message}")
+        return jsonify({"error": error_message}), 500
+
+
 @app.route("/webhook/n8n", methods=["POST"])
 def n8n_webhook():
     """Handle n8n webhook triggers"""
@@ -100,21 +282,27 @@ def n8n_webhook():
                 return jsonify({"error": "Invalid webhook signature"}), 401
 
         data = request.json
-        workflow_id = data.get("workflow_id")
         action = data.get("action")
         payload = data.get("payload", {})
 
-        print(f"\nReceived n8n webhook - Workflow: {workflow_id}, Action: {action}")
-
         # Handle different workflow actions
-        if action == "generate_ai_response":
-            response = chatbot.get_response(
-                payload.get("message", ""),
-                model=payload.get("model", "claude-3-5-sonnet-20240620"),
+        if action == "chat":
+            message = payload.get("message")
+            model = payload.get("model", "claude-3-5-sonnet-20240620")
+
+            if not message:
+                return jsonify({"error": "No message provided"}), 400
+
+            print(f"\nReceived chat webhook - Message: {message}, Model: {model}")
+
+            # Forward to n8n for processing with system prompt
+            return jsonify(
+                {
+                    "message": message,
+                    "model": model,
+                    "system_prompt": UNIVERSAL_AGENTS_PROMPT,
+                }
             )
-            return jsonify({"response": response})
-        elif action == "enhance_message":
-            return enhance_message()
 
         return jsonify({"error": "Unknown action"}), 400
 
@@ -123,4 +311,4 @@ def n8n_webhook():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=3000, debug=True)
+    app.run(host="0.0.0.0", port=3001, debug=True)

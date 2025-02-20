@@ -1,0 +1,315 @@
+{
+  "name": "Universal Agents Chat",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "chat",
+        "responseMode": "lastNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "webhook-node",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Check environment variables\nconst envVars = {\n  ANTHROPIC_API_KEY: $env.ANTHROPIC_API_KEY ? 'Set (first 4 chars: ' + $env.ANTHROPIC_API_KEY.substring(0, 4) + ')' : 'Not set',\n  OPENAI_API_KEY: $env.OPENAI_API_KEY ? 'Set (first 4 chars: ' + $env.OPENAI_API_KEY.substring(0, 4) + ')' : 'Not set',\n  PERPLEXITY_API_KEY: $env.PERPLEXITY_API_KEY ? 'Set (first 4 chars: ' + $env.PERPLEXITY_API_KEY.substring(0, 4) + ')' : 'Not set'\n};\n\n// Log to console\nconsole.log('Environment Variables Status:', envVars);\n\n// Pass through the input data plus debug info\nreturn {\n  ...items[0].json,\n  debug: {\n    environmentStatus: envVars\n  }\n};"
+      },
+      "id": "debug-node",
+      "name": "Debug Environment",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.body.model }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "claude",
+              "type": "string",
+              "operation": "startsWith"
+            },
+            {
+              "value2": "gpt",
+              "type": "string",
+              "operation": "startsWith"
+            },
+            {
+              "value2": "sonar",
+              "type": "string",
+              "operation": "startsWith"
+            }
+          ]
+        }
+      },
+      "id": "switch-node",
+      "name": "Select Model",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        650,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.ANTHROPIC_API_KEY }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"model\": \"{{ $json.body.model }}\", \"messages\": [{\"role\": \"user\", \"content\": \"{{ $json.body.message }}\"}], \"system\": \"{{ $json.body.system_prompt }}\", \"max_tokens\": 1024 }"
+      },
+      "id": "claude-node",
+      "name": "Claude API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        850,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.openai.com/v1/chat/completions",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.OPENAI_API_KEY }}"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"model\": \"{{ $json.body.model }}\", \"messages\": [{\"role\": \"system\", \"content\": \"{{ $json.body.system_prompt }}\"}, {\"role\": \"user\", \"content\": \"{{ $json.body.message }}\"}], \"max_tokens\": 1024 }"
+      },
+      "id": "openai-node",
+      "name": "OpenAI API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        850,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.perplexity.ai/chat/completions",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.PERPLEXITY_API_KEY }}"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"model\": \"{{ $json.body.model }}\", \"messages\": [{\"role\": \"system\", \"content\": \"{{ $json.body.system_prompt }}\"}, {\"role\": \"user\", \"content\": \"{{ $json.body.message }}\"}], \"max_tokens\": 1024 }"
+      },
+      "id": "perplexity-node",
+      "name": "Perplexity API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        850,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "response",
+              "value": "={{ $json.choices[0].message.content || $json.content || $json.response }}"
+            }
+          ]
+        }
+      },
+      "id": "response-node",
+      "name": "Prepare Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        1050,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oauthToken",
+        "channel": "#universal-agents",
+        "text": "=New message from Universal Agents:\n\nUser: {{ $json.body.message }}\n\nResponse: {{ $json.choices[0].message.content || $json.content || $json.response }}",
+        "otherOptions": {
+          "unfurl_links": false,
+          "unfurl_media": false
+        }
+      },
+      "id": "slack-node",
+      "name": "Send to Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [
+        1050,
+        450
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Debug Environment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Debug Environment": {
+      "main": [
+        [
+          {
+            "node": "Select Model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Model": {
+      "main": [
+        [
+          {
+            "node": "Claude API",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "OpenAI API",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Perplexity API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude API": {
+      "main": [
+        [
+          {
+            "node": "Prepare Response",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI API": {
+      "main": [
+        [
+          {
+            "node": "Prepare Response",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity API": {
+      "main": [
+        [
+          {
+            "node": "Prepare Response",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": ["chat", "ai", "universal-agents"],
+  "triggerCount": 0,
+  "updatedAt": "2024-02-19T12:00:00.000Z",
+  "versionId": "1.0"
+} 
