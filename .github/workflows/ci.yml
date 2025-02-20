@@ -9,6 +9,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      PUBLIC_SITE_PASSWORD: ${{ secrets.PUBLIC_SITE_PASSWORD }}
 
     steps:
     - uses: actions/checkout@v3
@@ -18,10 +20,26 @@ jobs:
       with:
         node-version: '20'
         
+    - name: Verify environment variables
+      run: |
+        if [ -z "$PUBLIC_SITE_PASSWORD" ]; then
+          echo "Error: PUBLIC_SITE_PASSWORD is not set"
+          exit 1
+        fi
+        echo "✓ PUBLIC_SITE_PASSWORD is set"
+        
     - name: Configure npm for Font Awesome
       run: |
         echo "@fortawesome:registry=https://npm.fontawesome.com/" > ~/.npmrc
         echo "//npm.fontawesome.com/:_authToken=${{ secrets.FONTAWESOME_TOKEN }}" >> ~/.npmrc
+        
+    - name: Verify Font Awesome token
+      run: |
+        if ! grep -q "_authToken" ~/.npmrc; then
+          echo "Error: Font Awesome token not configured"
+          exit 1
+        fi
+        echo "✓ Font Awesome token is configured"
       
     - name: Install Dependencies
       run: |
