@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PUBLIC_SITE_PASSWORD: ${{ secrets.PUBLIC_SITE_PASSWORD }}
+      FONTAWESOME_TOKEN: ${{ secrets.FONTAWESOME_TOKEN }}
 
     steps:
     - uses: actions/checkout@v3
@@ -27,6 +28,11 @@ jobs:
           exit 1
         fi
         echo "✓ PUBLIC_SITE_PASSWORD is set"
+        if [ -z "$FONTAWESOME_TOKEN" ]; then
+          echo "Error: FONTAWESOME_TOKEN is not set"
+          exit 1
+        fi
+        echo "✓ FONTAWESOME_TOKEN is set"
         
     - name: Configure npm for Font Awesome
       run: |
