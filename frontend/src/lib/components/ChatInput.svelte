@@ -11,7 +11,7 @@
 
   // Define backend URL with fallback
   const backendUrl = import.meta.env.PUBLIC_BACKEND_URL || 'http://localhost:3001';
-  console.log('Backend URL:', backendUrl); // Debug log
+  console.log('[DEBUG] Backend URL configured as:', backendUrl); // Debug log
 
   async function handleSubmit() {
     if (!inputValue.trim()) return;

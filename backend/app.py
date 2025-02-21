@@ -135,6 +135,7 @@ def chat_webhook():
         print(f"[DEBUG] Request headers: {dict(request.headers)}")
         print(f"[DEBUG] Request origin: {request.headers.get('Origin')}")
         print(f"[DEBUG] Request method: {request.method}")
+        print(f"[DEBUG] N8N URL configured as: {N8N_URL}")
 
         data = request.json
         print(f"[DEBUG] Request data: {data}")
