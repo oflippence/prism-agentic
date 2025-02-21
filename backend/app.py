@@ -11,59 +11,90 @@ from logging.handlers import RotatingFileHandler
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-# Configure logging
+# Configure logging first thing
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)],
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler("/var/log/gunicorn/app.log"),
+    ],
 )
 logger = logging.getLogger(__name__)
 
-# Initialize Flask app with error handling
-app = Flask(__name__)
 
-try:
-    # Load and validate required environment variables
-    required_vars = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "PERPLEXITY_API_KEY"]
-    missing_vars = [var for var in required_vars if not os.getenv(var)]
-    if missing_vars:
-        logger.warning(f"Missing environment variables: {', '.join(missing_vars)}")
-
-    # Configure CORS
-    CORS(
-        app,
-        resources={
-            r"/*": {
-                "origins": [
-                    "http://localhost:5173",  # Local development
-                    "http://localhost:4173",  # Local preview
-                    "https://prism-agentic.vercel.app",  # Vercel production
-                    "https://www.prism-agentic.vercel.app",  # Vercel production www
-                    os.getenv("FRONTEND_URL", "*"),  # Allow configuration via env var
-                ],
-                "methods": ["GET", "POST", "OPTIONS"],
-                "allow_headers": ["Content-Type"],
-            }
-        },
-    )
-
-    # Initialize other components with error handling
+def init_app():
+    """Initialize the Flask application with error handling"""
     try:
-        from chatbot.universal_agents import UniversalAgents
-        from config.system_prompts import UNIVERSAL_AGENTS_PROMPT
+        app = Flask(__name__)
 
-        chatbot = UniversalAgents()
-        logger.info("Successfully initialized Universal Agents")
+        # Add health check endpoint
+        @app.route("/health")
+        def health_check():
+            return jsonify({"status": "healthy"}), 200
+
+        # Load and validate required environment variables
+        required_vars = {
+            "ANTHROPIC_API_KEY": os.getenv("ANTHROPIC_API_KEY"),
+            "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY"),
+            "PERPLEXITY_API_KEY": os.getenv("PERPLEXITY_API_KEY"),
+            "N8N_URL": os.getenv("N8N_URL", "http://n8n:5678"),
+            "PORT": os.getenv("PORT", "8080"),
+        }
+
+        # Log all environment variables (excluding sensitive values)
+        logger.info("Environment Configuration:")
+        for key, value in required_vars.items():
+            if value:
+                if "KEY" in key:
+                    logger.info(f"{key}: [REDACTED]")
+                else:
+                    logger.info(f"{key}: {value}")
+            else:
+                logger.warning(f"Missing environment variable: {key}")
+
+        # Configure CORS
+        CORS(
+            app,
+            resources={
+                r"/*": {
+                    "origins": [
+                        "http://localhost:5173",  # Local development
+                        "http://localhost:4173",  # Local preview
+                        "https://prism-agentic.vercel.app",  # Vercel production
+                        "https://www.prism-agentic.vercel.app",  # Vercel production www
+                        os.getenv(
+                            "FRONTEND_URL", "*"
+                        ),  # Allow configuration via env var
+                    ],
+                    "methods": ["GET", "POST", "OPTIONS"],
+                    "allow_headers": ["Content-Type"],
+                }
+            },
+        )
+
+        # Initialize Universal Agents
+        try:
+            from chatbot.universal_agents import UniversalAgents
+            from config.system_prompts import UNIVERSAL_AGENTS_PROMPT
+
+            global chatbot
+            chatbot = UniversalAgents()
+            logger.info("Successfully initialized Universal Agents")
+        except Exception as e:
+            logger.error(f"Failed to initialize Universal Agents: {str(e)}")
+            chatbot = None
+            # Don't raise here, allow the app to start without chatbot
+
+        logger.info("Flask application initialized successfully")
+        return app
     except Exception as e:
-        logger.error(f"Failed to initialize Universal Agents: {str(e)}")
-        chatbot = None
+        logger.critical(f"Critical error during application initialization: {str(e)}")
+        sys.exit(1)
 
-    # Log successful initialization
-    logger.info("Flask application initialized successfully")
 
-except Exception as e:
-    logger.error(f"Error during application initialization: {str(e)}")
-    raise
+# Initialize the Flask app
+app = init_app()
 
 # Webhook secret for n8n authentication
 WEBHOOK_SECRET = os.getenv("N8N_WEBHOOK_SECRET")
@@ -78,9 +109,6 @@ http_adapter = HTTPAdapter(max_retries=retry_strategy)
 session = requests.Session()
 session.mount("http://", http_adapter)
 session.mount("https://", http_adapter)
-
-# Configure n8n URL based on environment
-N8N_URL = os.getenv("N8N_URL", "http://n8n:5678")  # Default for local Docker
 
 # Enhancement prompts
 ENHANCEMENT_PROMPTS = {
@@ -169,7 +197,9 @@ def chat_webhook():
         print(f"[DEBUG] Request headers: {dict(request.headers)}")
         print(f"[DEBUG] Request origin: {request.headers.get('Origin')}")
         print(f"[DEBUG] Request method: {request.method}")
-        print(f"[DEBUG] N8N URL configured as: {N8N_URL}")
+        print(
+            f"[DEBUG] N8N URL configured as: {os.getenv('N8N_URL', 'http://n8n:5678')}"
+        )
 
         data = request.json
         print(f"[DEBUG] Request data: {data}")
@@ -183,7 +213,9 @@ def chat_webhook():
         print(f"\n[DEBUG] Attempting to forward message to n8n:")
         print(f"[DEBUG] Message: {message}")
         print(f"[DEBUG] Model: {model}")
-        print(f"[DEBUG] Target URL: {N8N_URL}/webhook/n8n")
+        print(
+            f"[DEBUG] Target URL: {os.getenv('N8N_URL', 'http://n8n:5678')}/webhook/n8n"
+        )
 
         max_retries = 3
         retry_delay = 2  # seconds
@@ -194,7 +226,7 @@ def chat_webhook():
 
                 # Forward to n8n for processing
                 n8n_response = session.post(
-                    f"{N8N_URL}/webhook/n8n",
+                    f"{os.getenv('N8N_URL', 'http://n8n:5678')}/webhook/n8n",
                     json={
                         "action": "chat",
                         "payload": {
@@ -378,13 +410,13 @@ if __name__ == "__main__":
         default_port = "8080" if is_production else "3001"
         port = int(os.getenv("PORT", default_port))
 
-        logger.info(f"[DEBUG] Starting server on port {port}")
-        logger.info(f"[DEBUG] Environment: {os.getenv('ENVIRONMENT', 'development')}")
-        logger.info(f"[DEBUG] N8N URL: {os.getenv('N8N_URL', 'http://n8n:5678')}")
-        logger.info(f"[DEBUG] Frontend URL: {os.getenv('FRONTEND_URL', '*')}")
+        logger.info(f"Starting server on port {port}")
+        logger.info(f"Environment: {os.getenv('ENVIRONMENT', 'development')}")
+        logger.info(f"N8N URL: {os.getenv('N8N_URL', 'http://n8n:5678')}")
+        logger.info(f"Frontend URL: {os.getenv('FRONTEND_URL', '*')}")
 
         debug = os.getenv("ENVIRONMENT", "development") == "development"
         app.run(host="0.0.0.0", port=port, debug=debug)
     except Exception as e:
-        logger.error(f"Failed to start server: {str(e)}")
-        raise
+        logger.critical(f"Failed to start server: {str(e)}")
+        sys.exit(1)
