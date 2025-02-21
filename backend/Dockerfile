@@ -7,6 +7,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     build-essential \
     curl \
+    procps \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first to leverage Docker cache
@@ -23,101 +24,16 @@ ENV PORT=8080
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONPATH=/app
 
-# Create log directory and set permissions
+# Create log directory
 RUN mkdir -p /var/log/gunicorn && \
-    touch /var/log/gunicorn/error.log && \
-    touch /var/log/gunicorn/access.log && \
-    touch /var/log/gunicorn/app.log && \
     chmod -R 777 /var/log/gunicorn
 
-# Create startup script
-RUN echo '#!/bin/bash\n\
-\n\
-# Set up signal handling\n\
-_term() {\n\
-    echo "Received SIGTERM signal"\n\
-    kill -TERM "$child" 2>/dev/null\n\
-}\n\
-\n\
-_int() {\n\
-    echo "Received SIGINT signal"\n\
-    kill -INT "$child" 2>/dev/null\n\
-}\n\
-\n\
-trap _term SIGTERM\n\
-trap _int SIGINT\n\
-\n\
-# Start the application\n\
-if [ "$ENVIRONMENT" = "production" ]; then\n\
-    echo "Starting Gunicorn in production mode..."\n\
-    gunicorn --config=/app/gunicorn_config.py app:app &\n\
-else\n\
-    echo "Starting Flask development server..."\n\
-    python app.py &\n\
-fi\n\
-\n\
-child=$!\n\
-wait "$child"\n\
-\n\
-# Keep the container running\n\
-while true; do\n\
-    if ! kill -0 "$child" 2>/dev/null; then\n\
-        echo "Process has exited, restarting..."\n\
-        if [ "$ENVIRONMENT" = "production" ]; then\n\
-            gunicorn --config=/app/gunicorn_config.py app:app &\n\
-        else\n\
-            python app.py &\n\
-        fi\n\
-        child=$!\n\
-    fi\n\
-    sleep 5\n\
-done' > /app/start.sh && chmod +x /app/start.sh
-
-# Create health check script
-RUN echo '#!/bin/sh\n\
-\n\
-# Function to check health\n\
-check_health() {\n\
-    HEALTH_URL="http://localhost:${PORT:-8080}/health"\n\
-    echo "[$(date)] Checking health at: $HEALTH_URL"\n\
-    RESPONSE=$(curl -s -m 10 "$HEALTH_URL")\n\
-    STATUS=$?\n\
-    echo "[$(date)] Health check response: $RESPONSE"\n\
-    echo "[$(date)] Curl exit status: $STATUS"\n\
-    \n\
-    # Check if Gunicorn is running\n\
-    if ps aux | grep -q "[g]unicorn"; then\n\
-        echo "[$(date)] Gunicorn process is running"\n\
-    else\n\
-        echo "[$(date)] WARNING: Gunicorn process not found"\n\
-    fi\n\
-    \n\
-    # Check system resources\n\
-    echo "[$(date)] Memory usage:"\n\
-    free -m || true\n\
-    echo "[$(date)] Disk usage:"\n\
-    df -h / || true\n\
-    \n\
-    # Always return success\n\
-    return 0\n\
-}\n\
-\n\
-# Wait longer for initial startup\n\
-echo "[$(date)] Waiting for initial startup..."\n\
-sleep 10\n\
-\n\
-# Perform health check\n\
-check_health\n\
-\n\
-# Always exit successfully\n\
-exit 0' > /app/healthcheck.sh && chmod +x /app/healthcheck.sh
+# Simple health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
 
 # Expose the port
 EXPOSE 8080
 
-# Health check with more generous timeouts
-HEALTHCHECK --interval=60s --timeout=30s --start-period=60s --retries=3 \
-    CMD /app/healthcheck.sh
-
-# Use the startup script
-CMD ["/app/start.sh"] 
+# Start Gunicorn directly
+CMD ["gunicorn", "--config=/app/gunicorn_config.py", "app:app"] 

@@ -3,39 +3,25 @@ import multiprocessing
 import logging
 from gunicorn import glogging
 
-
-# Logging
-class CustomGunicornLogger(glogging.Logger):
-    def setup(self, cfg):
-        super().setup(cfg)
-
-        # Add custom file handler
-        error_handler = logging.FileHandler("/var/log/gunicorn/error.log")
-        error_handler.setLevel(logging.INFO)
-        self.error_log.addHandler(error_handler)
-
-
-logger_class = CustomGunicornLogger
+# Basic logging setup
+loglevel = "info"
+accesslog = "-"
+errorlog = "-"
+capture_output = True
 
 # Server socket
 bind = f"0.0.0.0:{os.getenv('PORT', '8080')}"
 backlog = 2048
 
-# Worker processes
-workers = 1  # Reduced to 1 worker for stability
-worker_class = "gthread"
+# Worker configuration
+workers = 1
+worker_class = "sync"  # Using sync workers for stability
 threads = 4
-worker_connections = 1000
-timeout = 300  # Increased timeout
-keepalive = 10  # Increased keepalive
 
-# Logging
-accesslog = "-"
-errorlog = "-"
-loglevel = "debug"
-access_log_format = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"'
-capture_output = True
-enable_stdio_inheritance = True
+# Timeouts
+timeout = 120
+graceful_timeout = 30
+keepalive = 5
 
 # Process naming
 proc_name = "prism_agentic_backend"
@@ -46,21 +32,38 @@ pidfile = None
 umask = 0
 user = None
 group = None
-tmp_upload_dir = None
+
+# Prevent memory leaks
+max_requests = 1000
+max_requests_jitter = 50
+
+# Logging configuration
+logconfig_dict = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "generic": {
+            "format": "%(asctime)s [%(process)d] [%(levelname)s] %(message)s",
+            "datefmt": "%Y-%m-%d %H:%M:%S",
+            "class": "logging.Formatter",
+        }
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "generic",
+            "stream": "ext://sys.stdout",
+        }
+    },
+    "root": {"level": "INFO", "handlers": ["console"]},
+}
 
 # SSL
 keyfile = None
 certfile = None
 
-# Prevent memory leaks
-max_requests = 100  # Reduced to prevent memory buildup
-max_requests_jitter = 10
-
 # Preload app
 preload_app = False  # Disabled preloading to prevent issues with forking
-
-# Graceful timeout
-graceful_timeout = 120  # Increased graceful timeout
 
 
 def when_ready(server):
