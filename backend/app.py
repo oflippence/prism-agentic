@@ -32,6 +32,35 @@ logger.info(f"Environment: {os.getenv('ENVIRONMENT', 'development')}")
 UNIVERSAL_AGENTS_PROMPT = """You are a helpful AI assistant focused on providing accurate and relevant information."""
 
 
+def check_health():
+    """Check if all critical components are healthy"""
+    try:
+        health_status = {
+            "status": "healthy",
+            "timestamp": time.time(),
+            "components": {
+                "app": "healthy",
+                "database": "not_configured",
+                "n8n": "unknown",
+            },
+        }
+
+        # Check n8n connection
+        try:
+            n8n_url = os.getenv("N8N_URL", "http://n8n:5678")
+            requests.get(f"{n8n_url}/healthz", timeout=2)
+            health_status["components"]["n8n"] = "healthy"
+        except Exception as e:
+            logger.warning(f"N8N health check failed: {str(e)}")
+            health_status["components"]["n8n"] = "unhealthy"
+            # Don't fail the overall health check for n8n issues
+
+        return health_status
+    except Exception as e:
+        logger.error(f"Health check failed: {str(e)}")
+        return {"status": "unhealthy", "error": str(e)}
+
+
 def init_app():
     """Initialize the Flask application with error handling"""
     try:
@@ -41,8 +70,16 @@ def init_app():
         # Add health check endpoint
         @app.route("/health")
         def health_check():
-            logger.debug("Health check endpoint called")
-            return jsonify({"status": "healthy"}), 200
+            health_status = check_health()
+            logger.debug(f"Health check called, status: {health_status}")
+            if health_status["status"] == "healthy":
+                return jsonify(health_status), 200
+            return jsonify(health_status), 500
+
+        # Add basic root endpoint
+        @app.route("/")
+        def root():
+            return jsonify({"status": "ok", "message": "Prism Agentic API"}), 200
 
         # Load and validate required environment variables
         required_vars = {
@@ -55,6 +92,7 @@ def init_app():
 
         # Log all environment variables (excluding sensitive values)
         logger.info("Environment Configuration:")
+        missing_vars = []
         for key, value in required_vars.items():
             if value:
                 if "KEY" in key:
@@ -62,7 +100,14 @@ def init_app():
                 else:
                     logger.info(f"{key}: {value}")
             else:
+                missing_vars.append(key)
                 logger.warning(f"Missing environment variable: {key}")
+
+        if missing_vars:
+            logger.warning(
+                f"Missing required environment variables: {', '.join(missing_vars)}"
+            )
+            # Don't fail startup for missing API keys
 
         # Configure CORS
         CORS(
