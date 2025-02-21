@@ -12,14 +12,8 @@ const config = {
 		// If your environment is not supported or you settled on a specific environment, switch out the adapter.
 		// See https://svelte.dev/docs/kit/adapters for more information about adapters.
 		adapter: adapter({
-			// Enable edge functions for better performance
-			edge: false,
-			// Split the app into smaller chunks
-			split: true,
-			// Ensure all routes are included in the build
-			external: [],
-			// Handle static assets
-			assets: 'public'
+			// Use Node.js runtime for better compatibility
+			runtime: 'nodejs18.x'
 		})
 	}
 };
