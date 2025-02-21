@@ -25,9 +25,10 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONPATH=/app
 ENV GUNICORN_CMD_ARGS="--log-file=- --access-logfile=- --error-logfile=- --capture-output"
 
-# Create a non-root user
+# Create a non-root user and set up directories
 RUN useradd -m -U app && \
-    chown -R app:app /app
+    mkdir -p /var/log/gunicorn && \
+    chown -R app:app /app /var/log/gunicorn
 
 # Switch to non-root user
 USER app

@@ -11,6 +11,7 @@ import signal
 from logging.handlers import RotatingFileHandler
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+from config.system_prompts import UNIVERSAL_AGENTS_PROMPT
 
 # Configure logging first thing
 logging.basicConfig(
@@ -44,9 +45,6 @@ logger.info("=== Starting Flask Application ===")
 logger.info(f"Python version: {sys.version}")
 logger.info(f"Flask version: {flask_version}")
 logger.info(f"Environment: {os.getenv('ENVIRONMENT', 'development')}")
-
-# Define system prompt if not imported
-UNIVERSAL_AGENTS_PROMPT = """You are a helpful AI assistant focused on providing accurate and relevant information."""
 
 
 def check_health():
@@ -147,7 +145,6 @@ def init_app():
         # Initialize Universal Agents
         try:
             from chatbot.universal_agents import UniversalAgents
-            from config.system_prompts import UNIVERSAL_AGENTS_PROMPT
 
             global chatbot
             chatbot = UniversalAgents()
