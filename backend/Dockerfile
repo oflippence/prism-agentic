@@ -18,9 +18,10 @@ COPY . .
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 ENV ENVIRONMENT=production
+ENV GUNICORN_CMD_ARGS="--workers=2 --threads=4 --worker-class=gthread --worker-tmp-dir=/dev/shm --timeout=30 --max-requests=1000 --max-requests-jitter=50"
 
 # Expose the port
 EXPOSE 8080
 
-# Use Gunicorn in production, Flask in development
-CMD ["sh", "-c", "if [ \"$ENVIRONMENT\" = \"production\" ]; then gunicorn --config gunicorn_config.py app:app; else python app.py; fi"] 
+# Use Gunicorn in production with explicit parameters
+CMD ["sh", "-c", "if [ \"$ENVIRONMENT\" = \"production\" ]; then gunicorn --bind=0.0.0.0:$PORT app:app; else python app.py; fi"] 
