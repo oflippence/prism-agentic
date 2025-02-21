@@ -9,9 +9,14 @@
   let selectedModel = 'claude-3-5-sonnet-20240620';
   let isLoading = false;
 
-  // Define backend URL with fallback
-  const backendUrl = import.meta.env.PUBLIC_BACKEND_URL || 'http://localhost:3001';
-  console.log('[DEBUG] Backend URL configured as:', backendUrl); // Debug log
+  // Get backend URL from environment with fallback
+  const backendUrl = import.meta.env?.PUBLIC_BACKEND_URL || 'http://localhost:3001';
+  console.log('[DEBUG] Environment mode:', import.meta.env.MODE);
+  console.log('[DEBUG] Backend URL:', backendUrl);
+  
+  if (!backendUrl.startsWith('http')) {
+    console.error('[DEBUG] Invalid backend URL format:', backendUrl);
+  }
 
   async function handleSubmit() {
     if (!inputValue.trim()) return;

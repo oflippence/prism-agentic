@@ -338,6 +338,15 @@ def n8n_webhook():
 
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 3001))
+    # Use port 3001 for local development, but allow Railway to override
+    is_production = os.getenv("ENVIRONMENT") == "production"
+    default_port = "8080" if is_production else "3001"
+    port = int(os.getenv("PORT", default_port))
+
+    print(f"[DEBUG] Starting server on port {port}")
+    print(f"[DEBUG] Environment: {os.getenv('ENVIRONMENT', 'development')}")
+    print(f"[DEBUG] N8N URL: {N8N_URL}")
+    print(f"[DEBUG] Frontend URL: {os.getenv('FRONTEND_URL', '*')}")
+
     debug = os.getenv("ENVIRONMENT", "development") == "development"
     app.run(host="0.0.0.0", port=port, debug=debug)
