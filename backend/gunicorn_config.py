@@ -1,22 +1,16 @@
 import os
 import multiprocessing
-import logging
-from gunicorn import glogging
 
-# Basic logging setup
-loglevel = "info"
-accesslog = "-"
-errorlog = "-"
-capture_output = True
-
-# Server socket
+# Basic server configuration
 bind = f"0.0.0.0:{os.getenv('PORT', '8080')}"
-backlog = 2048
-
-# Worker configuration
 workers = 1
-worker_class = "sync"  # Using sync workers for stability
+worker_class = "sync"
 threads = 4
+
+# Logging
+errorlog = "-"
+accesslog = "-"
+loglevel = "info"
 
 # Timeouts
 timeout = 120
@@ -37,33 +31,8 @@ group = None
 max_requests = 1000
 max_requests_jitter = 50
 
-# Logging configuration
-logconfig_dict = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "generic": {
-            "format": "%(asctime)s [%(process)d] [%(levelname)s] %(message)s",
-            "datefmt": "%Y-%m-%d %H:%M:%S",
-            "class": "logging.Formatter",
-        }
-    },
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-            "formatter": "generic",
-            "stream": "ext://sys.stdout",
-        }
-    },
-    "root": {"level": "INFO", "handlers": ["console"]},
-}
-
-# SSL
-keyfile = None
-certfile = None
-
-# Preload app
-preload_app = False  # Disabled preloading to prevent issues with forking
+# Disable preloading
+preload_app = False
 
 
 def when_ready(server):
