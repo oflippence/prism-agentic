@@ -11,7 +11,22 @@ from urllib3.util.retry import Retry
 import time
 
 app = Flask(__name__)
-CORS(app)
+CORS(
+    app,
+    resources={
+        r"/*": {
+            "origins": [
+                "http://localhost:5173",  # Local development
+                "http://localhost:4173",  # Local preview
+                "https://prism-agentic.vercel.app",  # Vercel production
+                "https://www.prism-agentic.vercel.app",  # Vercel production www
+                os.getenv("FRONTEND_URL", "*"),  # Allow configuration via env var
+            ],
+            "methods": ["GET", "POST", "OPTIONS"],
+            "allow_headers": ["Content-Type"],
+        }
+    },
+)
 
 # Initialize the chatbot
 chatbot = UniversalAgents()
@@ -29,6 +44,9 @@ http_adapter = HTTPAdapter(max_retries=retry_strategy)
 session = requests.Session()
 session.mount("http://", http_adapter)
 session.mount("https://", http_adapter)
+
+# Configure n8n URL based on environment
+N8N_URL = os.getenv("N8N_URL", "http://n8n:5678")  # Default for local Docker
 
 # Enhancement prompts
 ENHANCEMENT_PROMPTS = {
@@ -112,7 +130,15 @@ def enhance_message():
 def chat_webhook():
     """Handle chat webhook from frontend"""
     try:
+        # Add debug logging for incoming request
+        print("\n[DEBUG] Incoming request details:")
+        print(f"[DEBUG] Request headers: {dict(request.headers)}")
+        print(f"[DEBUG] Request origin: {request.headers.get('Origin')}")
+        print(f"[DEBUG] Request method: {request.method}")
+
         data = request.json
+        print(f"[DEBUG] Request data: {data}")
+
         message = data.get("message")
         model = data.get("model", "claude-3-5-sonnet-20240620")
 
@@ -122,7 +148,7 @@ def chat_webhook():
         print(f"\n[DEBUG] Attempting to forward message to n8n:")
         print(f"[DEBUG] Message: {message}")
         print(f"[DEBUG] Model: {model}")
-        print(f"[DEBUG] Target URL: http://n8n:5678/webhook/n8n")
+        print(f"[DEBUG] Target URL: {N8N_URL}/webhook/n8n")
 
         max_retries = 3
         retry_delay = 2  # seconds
@@ -133,7 +159,7 @@ def chat_webhook():
 
                 # Forward to n8n for processing
                 n8n_response = session.post(
-                    "http://n8n:5678/webhook/n8n",
+                    f"{N8N_URL}/webhook/n8n",
                     json={
                         "action": "chat",
                         "payload": {

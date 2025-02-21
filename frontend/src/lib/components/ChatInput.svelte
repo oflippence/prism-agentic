@@ -9,6 +9,10 @@
   let selectedModel = 'claude-3-5-sonnet-20240620';
   let isLoading = false;
 
+  // Define backend URL with fallback
+  const backendUrl = import.meta.env.PUBLIC_BACKEND_URL || 'http://localhost:3001';
+  console.log('Backend URL:', backendUrl); // Debug log
+
   async function handleSubmit() {
     if (!inputValue.trim()) return;
     
@@ -21,7 +25,13 @@
     isLoading = true;
     try {
       // Send to backend for processing and response
-      const response = await fetch('http://localhost:3001/webhook/chat', {
+      console.log('[DEBUG] Attempting to send request to:', `${backendUrl}/webhook/chat`);
+      console.log('[DEBUG] Request payload:', {
+        message: inputValue,
+        model: selectedModel
+      });
+      
+      const response = await fetch(`${backendUrl}/webhook/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -32,8 +42,13 @@
         })
       });
 
+      console.log('[DEBUG] Response status:', response.status);
+      console.log('[DEBUG] Response headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error('[DEBUG] Error response body:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
       }
       
       const text = await response.text(); // First get the raw text
