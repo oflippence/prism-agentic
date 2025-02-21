@@ -13,7 +13,7 @@ from urllib3.util.retry import Retry
 
 # Configure logging first thing
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,  # Changed to DEBUG level
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[
         logging.StreamHandler(sys.stdout),
@@ -22,15 +22,23 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Add startup logging
+logger.info("=== Starting Flask Application ===")
+logger.info(f"Python version: {sys.version}")
+logger.info(f"Flask version: {Flask.__version__}")
+logger.info(f"Environment: {os.getenv('ENVIRONMENT', 'development')}")
+
 
 def init_app():
     """Initialize the Flask application with error handling"""
     try:
         app = Flask(__name__)
+        logger.info("Flask app instance created")
 
         # Add health check endpoint
         @app.route("/health")
         def health_check():
+            logger.debug("Health check endpoint called")
             return jsonify({"status": "healthy"}), 200
 
         # Load and validate required environment variables
@@ -193,16 +201,16 @@ def chat_webhook():
     """Handle chat webhook from frontend"""
     try:
         # Add debug logging for incoming request
-        print("\n[DEBUG] Incoming request details:")
-        print(f"[DEBUG] Request headers: {dict(request.headers)}")
-        print(f"[DEBUG] Request origin: {request.headers.get('Origin')}")
-        print(f"[DEBUG] Request method: {request.method}")
-        print(
-            f"[DEBUG] N8N URL configured as: {os.getenv('N8N_URL', 'http://n8n:5678')}"
+        logger.info("\n=== New Chat Request ===")
+        logger.debug(f"Request headers: {dict(request.headers)}")
+        logger.debug(f"Request origin: {request.headers.get('Origin')}")
+        logger.debug(f"Request method: {request.method}")
+        logger.debug(
+            f"N8N URL configured as: {os.getenv('N8N_URL', 'http://n8n:5678')}"
         )
 
         data = request.json
-        print(f"[DEBUG] Request data: {data}")
+        logger.debug(f"Request data: {data}")
 
         message = data.get("message")
         model = data.get("model", "claude-3-5-sonnet-20240620")

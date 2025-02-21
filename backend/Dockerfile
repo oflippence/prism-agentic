@@ -19,7 +19,7 @@ COPY . .
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 ENV ENVIRONMENT=production
-ENV GUNICORN_CMD_ARGS="--workers=2 --threads=4 --worker-class=gthread --worker-tmp-dir=/dev/shm --timeout=30 --max-requests=1000 --max-requests-jitter=50 --log-level=debug --capture-output --enable-stdio-inheritance --graceful-timeout=30"
+ENV GUNICORN_CMD_ARGS="--workers=2 --threads=4 --worker-class=gthread --worker-tmp-dir=/dev/shm --timeout=30 --max-requests=1000 --max-requests-jitter=50 --log-level=debug --capture-output --enable-stdio-inheritance --access-logfile=- --error-logfile=- --graceful-timeout=30"
 
 # Create log directory
 RUN mkdir -p /var/log/gunicorn && \
@@ -34,8 +34,10 @@ if [ "$ENVIRONMENT" = "production" ]; then\n\
     echo "Starting Gunicorn in production mode..."\n\
     exec gunicorn \\\n\
         --bind=0.0.0.0:$PORT \\\n\
-        --error-logfile=/var/log/gunicorn/error.log \\\n\
-        --access-logfile=/var/log/gunicorn/access.log \\\n\
+        --error-logfile=- \\\n\
+        --access-logfile=- \\\n\
+        --log-level=debug \\\n\
+        --capture-output \\\n\
         --preload \\\n\
         app:app\n\
 else\n\
