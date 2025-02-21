@@ -1,6 +1,6 @@
 """Flask server for Universal Agents API"""
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, __version__ as flask_version
 from flask_cors import CORS
 import os
 import sys
@@ -25,8 +25,11 @@ logger = logging.getLogger(__name__)
 # Add startup logging
 logger.info("=== Starting Flask Application ===")
 logger.info(f"Python version: {sys.version}")
-logger.info(f"Flask version: {Flask.__version__}")
+logger.info(f"Flask version: {flask_version}")
 logger.info(f"Environment: {os.getenv('ENVIRONMENT', 'development')}")
+
+# Define system prompt if not imported
+UNIVERSAL_AGENTS_PROMPT = """You are a helpful AI assistant focused on providing accurate and relevant information."""
 
 
 def init_app():
@@ -178,8 +181,8 @@ def enhance_message():
             enhancement_type, ENHANCEMENT_PROMPTS["all"]
         ).format(message=message)
 
-        print(f"\nEnhancing message - Model: {model}, Type: {enhancement_type}")
-        print(f"Original message: {message}")
+        logger.info(f"\nEnhancing message - Model: {model}, Type: {enhancement_type}")
+        logger.info(f"Original message: {message}")
 
         # Use the chatbot to enhance the message with the specific prompt
         enhanced_message = chatbot.get_response(prompt, model=model)
@@ -218,11 +221,11 @@ def chat_webhook():
         if not message:
             return jsonify({"error": "No message provided"}), 400
 
-        print(f"\n[DEBUG] Attempting to forward message to n8n:")
-        print(f"[DEBUG] Message: {message}")
-        print(f"[DEBUG] Model: {model}")
-        print(
-            f"[DEBUG] Target URL: {os.getenv('N8N_URL', 'http://n8n:5678')}/webhook/n8n"
+        logger.debug(f"\nAttempting to forward message to n8n:")
+        logger.debug(f"Message: {message}")
+        logger.debug(f"Model: {model}")
+        logger.debug(
+            f"Target URL: {os.getenv('N8N_URL', 'http://n8n:5678')}/webhook/n8n"
         )
 
         max_retries = 3
@@ -230,7 +233,7 @@ def chat_webhook():
 
         for attempt in range(max_retries):
             try:
-                print(f"\n[DEBUG] Attempt {attempt + 1}/{max_retries}")
+                logger.debug(f"\n[DEBUG] Attempt {attempt + 1}/{max_retries}")
 
                 # Forward to n8n for processing
                 n8n_response = session.post(
@@ -246,23 +249,23 @@ def chat_webhook():
                     timeout=30,  # Increased timeout
                 )
 
-                print(f"[DEBUG] n8n Response Status: {n8n_response.status_code}")
-                print(f"[DEBUG] n8n Response Headers: {dict(n8n_response.headers)}")
-                print(
-                    f"[DEBUG] n8n Response Content: {n8n_response.text[:500]}..."
+                logger.debug(f"n8n Response Status: {n8n_response.status_code}")
+                logger.debug(f"n8n Response Headers: {dict(n8n_response.headers)}")
+                logger.debug(
+                    f"n8n Response Content: {n8n_response.text[:500]}..."
                 )  # Print first 500 chars
 
                 if n8n_response.ok:
                     break  # Success, exit retry loop
 
                 error_message = f"n8n error (status {n8n_response.status_code}): {n8n_response.text}"
-                print(
-                    f"[DEBUG] Error from n8n (attempt {attempt + 1}/{max_retries}): {error_message}"
+                logger.error(
+                    f"Error from n8n (attempt {attempt + 1}/{max_retries}): {error_message}"
                 )
 
                 if attempt < max_retries - 1:  # Don't sleep on last attempt
-                    print(
-                        f"[DEBUG] Waiting {retry_delay} seconds before next attempt..."
+                    logger.debug(
+                        f"Waiting {retry_delay} seconds before next attempt..."
                     )
                     time.sleep(retry_delay)
                     retry_delay *= 2  # Exponential backoff
@@ -271,11 +274,11 @@ def chat_webhook():
 
             except requests.exceptions.ConnectionError as e:
                 error_message = f"Could not connect to n8n (attempt {attempt + 1}/{max_retries}). Error: {str(e)}"
-                print(f"[DEBUG] Connection Error: {error_message}")
+                logger.error(f"Connection Error: {error_message}")
 
                 if attempt < max_retries - 1:
-                    print(
-                        f"[DEBUG] Waiting {retry_delay} seconds before next attempt..."
+                    logger.debug(
+                        f"Waiting {retry_delay} seconds before next attempt..."
                     )
                     time.sleep(retry_delay)
                     retry_delay *= 2
@@ -284,11 +287,11 @@ def chat_webhook():
 
             except requests.exceptions.Timeout as e:
                 error_message = f"Request to n8n timed out (attempt {attempt + 1}/{max_retries}). Error: {str(e)}"
-                print(f"[DEBUG] Timeout Error: {error_message}")
+                logger.error(f"Timeout Error: {error_message}")
 
                 if attempt < max_retries - 1:
-                    print(
-                        f"[DEBUG] Waiting {retry_delay} seconds before next attempt..."
+                    logger.debug(
+                        f"Waiting {retry_delay} seconds before next attempt..."
                     )
                     time.sleep(retry_delay)
                     retry_delay *= 2
@@ -298,9 +301,9 @@ def chat_webhook():
         # Get the response data from n8n
         try:
             response_data = n8n_response.json()
-            print(f"[DEBUG] Raw n8n response text: {n8n_response.text}")
-            print(f"[DEBUG] Successfully parsed n8n response: {response_data}")
-            print(f"[DEBUG] Response data type: {type(response_data)}")
+            logger.debug(f"Raw n8n response text: {n8n_response.text}")
+            logger.debug(f"Successfully parsed n8n response: {response_data}")
+            logger.debug(f"Response data type: {type(response_data)}")
 
             # Handle different response formats
             answer = None
@@ -340,7 +343,7 @@ def chat_webhook():
                 answer = response_data
 
             if not answer:
-                print(f"[DEBUG] Could not find answer in response: {response_data}")
+                logger.error(f"Could not find answer in response: {response_data}")
                 return jsonify(
                     {
                         "error": "No valid response found in n8n output",
@@ -352,23 +355,23 @@ def chat_webhook():
                 "question": message,  # Use original message as question
                 "answer": answer,
             }
-            print(
-                f"[DEBUG] Extracted answer from response: {answer[:100]}..."
+            logger.debug(
+                f"Extracted answer from response: {answer[:100]}..."
             )  # Print first 100 chars
-            print(
-                f"[DEBUG] Sending formatted response to frontend: {formatted_response}"
+            logger.debug(
+                f"Sending formatted response to frontend: {formatted_response}"
             )
             return jsonify(formatted_response)
         except ValueError as e:
             error_message = (
                 f"Invalid JSON response from n8n: {n8n_response.text[:500]}..."
             )
-            print(f"[DEBUG] JSON Parse Error: {error_message}")
+            logger.error(f"JSON Parse Error: {error_message}")
             return jsonify({"error": error_message}), 502
 
     except Exception as e:
         error_message = f"Unexpected error: {str(e)}"
-        print(f"[DEBUG] Unexpected Error: {error_message}")
+        logger.error(f"Unexpected Error: {error_message}")
         return jsonify({"error": error_message}), 500
 
 
@@ -394,7 +397,7 @@ def n8n_webhook():
             if not message:
                 return jsonify({"error": "No message provided"}), 400
 
-            print(f"\nReceived chat webhook - Message: {message}, Model: {model}")
+            logger.info(f"\nReceived chat webhook - Message: {message}, Model: {model}")
 
             # Forward to n8n for processing with system prompt
             return jsonify(
