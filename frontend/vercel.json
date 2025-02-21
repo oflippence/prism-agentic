@@ -1,11 +1,12 @@
 {
-  "buildCommand": "npm run build",
-  "installCommand": "npm install",
-  "framework": "sveltekit",
-  "routes": [
+  "version": 2,
+  "builds": [
     {
-      "handle": "filesystem"
-    },
+      "src": "package.json",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
     {
       "src": "/(.*)",
       "dest": "/"
