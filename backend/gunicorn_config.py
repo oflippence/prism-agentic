@@ -1,12 +1,11 @@
 import os
-import multiprocessing
 
 # Server socket
 bind = f"0.0.0.0:{os.getenv('PORT', '8080')}"
 backlog = 2048
 
-# Worker processes
-workers = multiprocessing.cpu_count() * 2 + 1
+# Worker processes - more conservative for Railway
+workers = 4  # Fixed number of workers instead of CPU-based
 worker_class = "sync"
 worker_connections = 1000
 timeout = 30
@@ -27,6 +26,13 @@ umask = 0
 user = None
 group = None
 tmp_upload_dir = None
+
+# Memory management
+max_requests = 1000
+max_requests_jitter = 50
+
+# Prevent memory leaks
+preload_app = True
 
 # SSL
 keyfile = None
