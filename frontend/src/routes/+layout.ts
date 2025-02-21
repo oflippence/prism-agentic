@@ -1,17 +1,16 @@
 import { browser } from '$app/environment';
 import { redirect } from '@sveltejs/kit';
+import type { LayoutLoad } from './$types';
 
-export const load = ({ url }: { url: URL }) => {
+export const load: LayoutLoad = async ({ url }) => {
     // Don't protect the login page
     if (url.pathname === '/login') {
         return {};
     }
 
-    if (browser) {
-        const isAuthenticated = sessionStorage.getItem('authenticated') === 'true';
-        if (!isAuthenticated) {
-            throw redirect(307, `/login?returnTo=${url.pathname}`);
-        }
+    // Only check sessionStorage in the browser
+    if (browser && sessionStorage.getItem('authenticated') !== 'true') {
+        throw redirect(303, `/login?returnTo=${url.pathname}`);
     }
 
     return {};
