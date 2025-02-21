@@ -2,34 +2,68 @@
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from chatbot.universal_agents import UniversalAgents
-from config.system_prompts import UNIVERSAL_AGENTS_PROMPT
 import os
+import sys
+import time
+import logging
 import requests
+from logging.handlers import RotatingFileHandler
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-import time
 
-app = Flask(__name__)
-CORS(
-    app,
-    resources={
-        r"/*": {
-            "origins": [
-                "http://localhost:5173",  # Local development
-                "http://localhost:4173",  # Local preview
-                "https://prism-agentic.vercel.app",  # Vercel production
-                "https://www.prism-agentic.vercel.app",  # Vercel production www
-                os.getenv("FRONTEND_URL", "*"),  # Allow configuration via env var
-            ],
-            "methods": ["GET", "POST", "OPTIONS"],
-            "allow_headers": ["Content-Type"],
-        }
-    },
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)],
 )
+logger = logging.getLogger(__name__)
 
-# Initialize the chatbot
-chatbot = UniversalAgents()
+# Initialize Flask app with error handling
+app = Flask(__name__)
+
+try:
+    # Load and validate required environment variables
+    required_vars = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "PERPLEXITY_API_KEY"]
+    missing_vars = [var for var in required_vars if not os.getenv(var)]
+    if missing_vars:
+        logger.warning(f"Missing environment variables: {', '.join(missing_vars)}")
+
+    # Configure CORS
+    CORS(
+        app,
+        resources={
+            r"/*": {
+                "origins": [
+                    "http://localhost:5173",  # Local development
+                    "http://localhost:4173",  # Local preview
+                    "https://prism-agentic.vercel.app",  # Vercel production
+                    "https://www.prism-agentic.vercel.app",  # Vercel production www
+                    os.getenv("FRONTEND_URL", "*"),  # Allow configuration via env var
+                ],
+                "methods": ["GET", "POST", "OPTIONS"],
+                "allow_headers": ["Content-Type"],
+            }
+        },
+    )
+
+    # Initialize other components with error handling
+    try:
+        from chatbot.universal_agents import UniversalAgents
+        from config.system_prompts import UNIVERSAL_AGENTS_PROMPT
+
+        chatbot = UniversalAgents()
+        logger.info("Successfully initialized Universal Agents")
+    except Exception as e:
+        logger.error(f"Failed to initialize Universal Agents: {str(e)}")
+        chatbot = None
+
+    # Log successful initialization
+    logger.info("Flask application initialized successfully")
+
+except Exception as e:
+    logger.error(f"Error during application initialization: {str(e)}")
+    raise
 
 # Webhook secret for n8n authentication
 WEBHOOK_SECRET = os.getenv("N8N_WEBHOOK_SECRET")
@@ -338,15 +372,19 @@ def n8n_webhook():
 
 
 if __name__ == "__main__":
-    # Use port 3001 for local development, but allow Railway to override
-    is_production = os.getenv("ENVIRONMENT") == "production"
-    default_port = "8080" if is_production else "3001"
-    port = int(os.getenv("PORT", default_port))
+    try:
+        # Use port 3001 for local development, but allow Railway to override
+        is_production = os.getenv("ENVIRONMENT") == "production"
+        default_port = "8080" if is_production else "3001"
+        port = int(os.getenv("PORT", default_port))
 
-    print(f"[DEBUG] Starting server on port {port}")
-    print(f"[DEBUG] Environment: {os.getenv('ENVIRONMENT', 'development')}")
-    print(f"[DEBUG] N8N URL: {N8N_URL}")
-    print(f"[DEBUG] Frontend URL: {os.getenv('FRONTEND_URL', '*')}")
+        logger.info(f"[DEBUG] Starting server on port {port}")
+        logger.info(f"[DEBUG] Environment: {os.getenv('ENVIRONMENT', 'development')}")
+        logger.info(f"[DEBUG] N8N URL: {os.getenv('N8N_URL', 'http://n8n:5678')}")
+        logger.info(f"[DEBUG] Frontend URL: {os.getenv('FRONTEND_URL', '*')}")
 
-    debug = os.getenv("ENVIRONMENT", "development") == "development"
-    app.run(host="0.0.0.0", port=port, debug=debug)
+        debug = os.getenv("ENVIRONMENT", "development") == "development"
+        app.run(host="0.0.0.0", port=port, debug=debug)
+    except Exception as e:
+        logger.error(f"Failed to start server: {str(e)}")
+        raise
