@@ -25,16 +25,16 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONPATH=/app
 ENV GUNICORN_CMD_ARGS="--capture-output --enable-stdio-inheritance"
 
-# Create a non-root user
+# Create log directory with proper permissions (do this before switching user)
+RUN mkdir -p /var/log/gunicorn && \
+    chmod -R 777 /var/log/gunicorn
+
+# Create a non-root user and set ownership
 RUN useradd -m -U app && \
-    chown -R app:app /app
+    chown -R app:app /app /var/log/gunicorn
 
 # Switch to non-root user
 USER app
-
-# Create log directory
-RUN mkdir -p /var/log/gunicorn && \
-    chmod -R 777 /var/log/gunicorn
 
 # Simple health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \

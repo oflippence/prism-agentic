@@ -7,9 +7,9 @@ workers = 1
 worker_class = "sync"
 threads = 4
 
-# Logging
-errorlog = "-"
-accesslog = "-"
+# Logging - use stdout/stderr
+errorlog = "/dev/stderr"
+accesslog = "/dev/stdout"
 loglevel = "info"
 
 # Timeouts
