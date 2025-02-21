@@ -1,5 +1,4 @@
 import os
-import multiprocessing
 
 # Basic server configuration
 bind = f"0.0.0.0:{os.getenv('PORT', '8080')}"
@@ -7,9 +6,9 @@ workers = 1
 worker_class = "sync"
 threads = 4
 
-# Logging - use stdout/stderr
-errorlog = "/dev/stderr"
-accesslog = "/dev/stdout"
+# Logging - disable file logging
+errorlog = "-"
+accesslog = "-"
 loglevel = "info"
 
 # Timeouts

@@ -23,15 +23,11 @@ ENV ENVIRONMENT=production
 ENV PORT=8080
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONPATH=/app
-ENV GUNICORN_CMD_ARGS="--capture-output --enable-stdio-inheritance"
+ENV GUNICORN_CMD_ARGS="--log-file=- --access-logfile=- --error-logfile=- --capture-output"
 
-# Create log directory with proper permissions (do this before switching user)
-RUN mkdir -p /var/log/gunicorn && \
-    chmod -R 777 /var/log/gunicorn
-
-# Create a non-root user and set ownership
+# Create a non-root user
 RUN useradd -m -U app && \
-    chown -R app:app /app /var/log/gunicorn
+    chown -R app:app /app
 
 # Switch to non-root user
 USER app
@@ -43,5 +39,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
 # Expose the port
 EXPOSE 8080
 
-# Start Gunicorn
-CMD ["gunicorn", "--config=/app/gunicorn_config.py", "app:app"] 
+# Start Gunicorn with explicit log configuration
+CMD ["gunicorn", "--config=/app/gunicorn_config.py", "--log-file=-", "--access-logfile=-", "--error-logfile=-", "app:app"] 
