@@ -31,28 +31,47 @@ RUN mkdir -p /var/log/gunicorn && \
     chmod -R 777 /var/log/gunicorn
 
 # Create startup script
-RUN echo '#!/bin/sh\n\
+RUN echo '#!/bin/bash\n\
 \n\
-# Function to cleanup on exit\n\
-cleanup() {\n\
-    echo "Received shutdown signal - cleaning up..."\n\
-    # Add any cleanup tasks here\n\
-    exit 0\n\
+# Set up signal handling\n\
+_term() {\n\
+    echo "Received SIGTERM signal"\n\
+    kill -TERM "$child" 2>/dev/null\n\
 }\n\
 \n\
-# Trap signals\n\
-trap cleanup SIGTERM SIGINT SIGQUIT\n\
+_int() {\n\
+    echo "Received SIGINT signal"\n\
+    kill -INT "$child" 2>/dev/null\n\
+}\n\
+\n\
+trap _term SIGTERM\n\
+trap _int SIGINT\n\
 \n\
 # Start the application\n\
 if [ "$ENVIRONMENT" = "production" ]; then\n\
     echo "Starting Gunicorn in production mode..."\n\
-    exec gunicorn \\\n\
-        --config=/app/gunicorn_config.py \\\n\
-        app:app\n\
+    gunicorn --config=/app/gunicorn_config.py app:app &\n\
 else\n\
     echo "Starting Flask development server..."\n\
-    exec python app.py\n\
-fi' > /app/start.sh && chmod +x /app/start.sh
+    python app.py &\n\
+fi\n\
+\n\
+child=$!\n\
+wait "$child"\n\
+\n\
+# Keep the container running\n\
+while true; do\n\
+    if ! kill -0 "$child" 2>/dev/null; then\n\
+        echo "Process has exited, restarting..."\n\
+        if [ "$ENVIRONMENT" = "production" ]; then\n\
+            gunicorn --config=/app/gunicorn_config.py app:app &\n\
+        else\n\
+            python app.py &\n\
+        fi\n\
+        child=$!\n\
+    fi\n\
+    sleep 5\n\
+done' > /app/start.sh && chmod +x /app/start.sh
 
 # Create health check script
 RUN echo '#!/bin/sh\n\

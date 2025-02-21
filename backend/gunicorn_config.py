@@ -22,12 +22,12 @@ bind = f"0.0.0.0:{os.getenv('PORT', '8080')}"
 backlog = 2048
 
 # Worker processes
-workers = 2  # Fixed number for Railway
+workers = 1  # Reduced to 1 worker for stability
 worker_class = "gthread"
 threads = 4
 worker_connections = 1000
-timeout = 120  # Increased timeout
-keepalive = 5  # Increased keepalive
+timeout = 300  # Increased timeout
+keepalive = 10  # Increased keepalive
 
 # Logging
 accesslog = "-"
@@ -51,6 +51,59 @@ tmp_upload_dir = None
 # SSL
 keyfile = None
 certfile = None
+
+# Prevent memory leaks
+max_requests = 100  # Reduced to prevent memory buildup
+max_requests_jitter = 10
+
+# Preload app
+preload_app = False  # Disabled preloading to prevent issues with forking
+
+# Graceful timeout
+graceful_timeout = 120  # Increased graceful timeout
+
+
+def when_ready(server):
+    """Log when server is ready"""
+    server.log.info("=== Gunicorn server is ready ===")
+
+
+def worker_int(worker):
+    """Log when worker receives INT signal"""
+    worker.log.info(f"=== Worker {worker.pid} received INT signal ===")
+
+
+def worker_abort(worker):
+    """Log when worker receives ABORT signal"""
+    worker.log.warning(f"=== Worker {worker.pid} received ABORT signal ===")
+
+
+def worker_exit(server, worker):
+    """Log when worker exits"""
+    server.log.info(f"=== Worker {worker.pid} exited ===")
+    # Try to spawn a new worker
+    server.spawn_worker()
+
+
+def on_exit(server):
+    """Log when server exits"""
+    server.log.info("=== Gunicorn server is shutting down ===")
+
+
+def post_worker_init(worker):
+    """Called just after a worker has initialized"""
+    worker.log.info(f"=== Worker {worker.pid} initialized ===")
+
+
+def pre_request(worker, req):
+    """Called just before a worker processes the request"""
+    worker.log.debug(f"=== Processing request: {req.uri} ===")
+    return None
+
+
+def post_request(worker, req, environ, resp):
+    """Called after a worker processes the request"""
+    worker.log.debug(f"=== Completed request: {req.uri} ===")
 
 
 def on_starting(server):
@@ -76,39 +129,3 @@ def pre_fork(server, worker):
 def pre_exec(server):
     """Log before exec-ing"""
     server.log.info("=== Gunicorn pre-exec ===")
-
-
-def when_ready(server):
-    """Log when server is ready"""
-    server.log.info("=== Gunicorn server is ready ===")
-
-
-def worker_int(worker):
-    """Log when worker receives INT or QUIT signal"""
-    worker.log.info(f"=== Worker {worker.pid} received INT or QUIT signal ===")
-
-
-def worker_abort(worker):
-    """Log when worker receives SIGABRT signal"""
-    worker.log.warning(f"=== Worker {worker.pid} received SIGABRT signal ===")
-
-
-def worker_exit(server, worker):
-    """Log when worker exits"""
-    server.log.info(f"=== Worker {worker.pid} exited ===")
-
-
-def on_exit(server):
-    """Log when server exits"""
-    server.log.info("=== Gunicorn server is shutting down ===")
-
-
-# Prevent memory leaks
-max_requests = 1000
-max_requests_jitter = 50
-
-# Preload app to save memory
-preload_app = True
-
-# Graceful timeout
-graceful_timeout = 60  # Increased graceful timeout
