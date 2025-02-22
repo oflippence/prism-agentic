@@ -41,4 +41,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
 EXPOSE 8080
 
 # Start Gunicorn with explicit log configuration
-CMD ["gunicorn", "--config=/app/gunicorn_config.py", "--log-file=-", "--access-logfile=-", "--error-logfile=-", "app:app"] 
+CMD ["gunicorn", "--config=/app/gunicorn_config.py", "--log-file=-", "--access-logfile=-", "--error-logfile=-", "main:app"] 
