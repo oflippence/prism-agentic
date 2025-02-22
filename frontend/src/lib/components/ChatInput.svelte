@@ -3,15 +3,16 @@
   import { faPaperclip, faCamera, faAngleDown, faChevronRight } from '@fortawesome/pro-solid-svg-icons';
   import { faGoogleDrive as faGoogleDriveBrand } from '@fortawesome/free-brands-svg-icons/faGoogleDrive';
   import { createEventDispatcher } from 'svelte';
+  import { config } from '../config/environment';
 
   const dispatch = createEventDispatcher();
   let inputValue = '';
   let selectedModel = 'claude-3-5-sonnet-20240620';
   let isLoading = false;
 
-  // Get backend URL from environment with fallback
-  const backendUrl = import.meta.env?.PUBLIC_BACKEND_URL || 'http://localhost:3001';
-  console.log('[DEBUG] Environment mode:', import.meta.env.MODE);
+  // Get backend URL from centralized config
+  const backendUrl = config.backendUrl;
+  console.log('[DEBUG] Environment mode:', config.environment);
   console.log('[DEBUG] Backend URL:', backendUrl);
   
   if (!backendUrl.startsWith('http')) {
