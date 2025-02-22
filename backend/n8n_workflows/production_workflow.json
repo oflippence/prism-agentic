@@ -1,0 +1,244 @@
+{
+  "name": "Production Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "n8n",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-node",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Extract API keys from payload\nconst apiKeys = $input.item.json.body.payload.api_keys || {};\n\n// Make API keys available to subsequent nodes\nreturn {\n  ...items[0].json,\n  api_keys: apiKeys\n};"
+      },
+      "id": "extract-keys",
+      "name": "Extract API Keys",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.body.payload.model }}",
+        "rules": {
+          "rules": [
+            {
+              "operation": "startsWith",
+              "value2": "claude"
+            },
+            {
+              "operation": "startsWith",
+              "value2": "gpt",
+              "output": 1
+            },
+            {
+              "operation": "startsWith",
+              "value2": "sonar",
+              "output": 2
+            }
+          ]
+        }
+      },
+      "id": "select-model",
+      "name": "Select Model",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "method": "POST",
+        "authentication": "genericHeader",
+        "genericAuthenticationHeader": "x-api-key",
+        "genericAuthenticationValue": "={{ $json.api_keys.ANTHROPIC_API_KEY }}",
+        "headerParametersUi": {
+          "parameter": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"model\": \"{{$json.body.payload.model}}\", \"messages\": [{\"role\": \"user\", \"content\": \"{{$json.body.payload.message}}\"}], \"system\": \"{{$json.body.payload.system_prompt}}\", \"max_tokens\": 1024 }"
+      },
+      "id": "claude-api",
+      "name": "Claude API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [850, 200]
+    },
+    {
+      "parameters": {
+        "url": "https://api.openai.com/v1/chat/completions",
+        "method": "POST",
+        "authentication": "genericHeader",
+        "genericAuthenticationHeader": "Authorization",
+        "genericAuthenticationValue": "=Bearer {{ $json.api_keys.OPENAI_API_KEY }}",
+        "headerParametersUi": {
+          "parameter": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"model\": \"{{$json.body.payload.model}}\", \"messages\": [{\"role\": \"system\", \"content\": \"{{$json.body.payload.system_prompt}}\"}, {\"role\": \"user\", \"content\": \"{{$json.body.payload.message}}\"}], \"max_tokens\": 1024 }"
+      },
+      "id": "openai-api",
+      "name": "OpenAI API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.perplexity.ai/chat/completions",
+        "method": "POST",
+        "authentication": "genericHeader",
+        "genericAuthenticationHeader": "Authorization",
+        "genericAuthenticationValue": "=Bearer {{ $json.api_keys.PERPLEXITY_API_KEY }}",
+        "headerParametersUi": {
+          "parameter": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"model\": \"{{$json.body.payload.model}}\", \"messages\": [{\"role\": \"system\", \"content\": \"{{$json.body.payload.system_prompt}}\"}, {\"role\": \"user\", \"content\": \"{{$json.body.payload.message}}\"}], \"max_tokens\": 1024 }"
+      },
+      "id": "perplexity-api",
+      "name": "Perplexity API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [850, 400]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "question",
+              "value": "={{ $json.body.payload.message }}"
+            },
+            {
+              "name": "answer",
+              "value": "={{ $json.content?.[0]?.text || $json.choices?.[0]?.message?.content || $json.content }}"
+            }
+          ]
+        }
+      },
+      "id": "prepare-response",
+      "name": "Prepare Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract API Keys",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract API Keys": {
+      "main": [
+        [
+          {
+            "node": "Select Model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Model": {
+      "main": [
+        [
+          {
+            "node": "Claude API",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "OpenAI API",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Perplexity API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude API": {
+      "main": [
+        [
+          {
+            "node": "Prepare Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI API": {
+      "main": [
+        [
+          {
+            "node": "Prepare Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity API": {
+      "main": [
+        [
+          {
+            "node": "Prepare Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": true
+} 

@@ -285,6 +285,13 @@ def chat_webhook():
             f"Target URL: {os.getenv('N8N_URL', 'http://n8n:5678')}/webhook/n8n"
         )
 
+        # Get API keys from environment
+        api_keys = {
+            "ANTHROPIC_API_KEY": os.getenv("ANTHROPIC_API_KEY"),
+            "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY"),
+            "PERPLEXITY_API_KEY": os.getenv("PERPLEXITY_API_KEY"),
+        }
+
         max_retries = 3
         retry_delay = 2  # seconds
 
@@ -292,7 +299,7 @@ def chat_webhook():
             try:
                 logger.debug(f"\n[DEBUG] Attempt {attempt + 1}/{max_retries}")
 
-                # Forward to n8n for processing
+                # Forward to n8n for processing with API keys
                 n8n_response = session.post(
                     f"{os.getenv('N8N_URL', 'http://n8n:5678')}/webhook/n8n",
                     json={
@@ -301,6 +308,7 @@ def chat_webhook():
                             "message": message,
                             "model": model,
                             "system_prompt": UNIVERSAL_AGENTS_PROMPT,
+                            "api_keys": api_keys,  # Include API keys in payload
                         },
                     },
                     timeout=30,  # Increased timeout
