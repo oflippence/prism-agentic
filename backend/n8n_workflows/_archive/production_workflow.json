@@ -16,13 +16,24 @@
     },
     {
       "parameters": {
-        "functionCode": "// Extract API keys from payload\nconst apiKeys = $input.item.json.body.payload.api_keys || {};\n\n// Make API keys available to subsequent nodes\nreturn {\n  ...items[0].json,\n  api_keys: apiKeys\n};"
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5f19defc-df4c-4688-a584-a9fc5ce09364",
+              "name": "original-message",
+              "value": "={{ $json.body.payload.message }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
       },
-      "id": "extract-keys",
-      "name": "Extract API Keys",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 1,
-      "position": [450, 300]
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [450, 300],
+      "id": "edit-fields",
+      "name": "Edit Fields"
     },
     {
       "parameters": {
@@ -57,9 +68,8 @@
       "parameters": {
         "url": "https://api.anthropic.com/v1/messages",
         "method": "POST",
-        "authentication": "genericHeader",
-        "genericAuthenticationHeader": "x-api-key",
-        "genericAuthenticationValue": "={{ $json.api_keys.ANTHROPIC_API_KEY }}",
+        "authentication": "headerAuth",
+        "nodeCredentialType": "anthropicApi",
         "headerParametersUi": {
           "parameter": [
             {
@@ -80,15 +90,20 @@
       "name": "Claude API",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
-      "position": [850, 200]
+      "position": [850, 200],
+      "credentials": {
+        "anthropicApi": {
+          "id": "anthropic-api-creds",
+          "name": "Anthropic API"
+        }
+      }
     },
     {
       "parameters": {
         "url": "https://api.openai.com/v1/chat/completions",
         "method": "POST",
-        "authentication": "genericHeader",
-        "genericAuthenticationHeader": "Authorization",
-        "genericAuthenticationValue": "=Bearer {{ $json.api_keys.OPENAI_API_KEY }}",
+        "authentication": "headerAuth",
+        "nodeCredentialType": "openAiApi",
         "headerParametersUi": {
           "parameter": [
             {
@@ -105,15 +120,20 @@
       "name": "OpenAI API",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
-      "position": [850, 300]
+      "position": [850, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-api-creds",
+          "name": "OpenAI API"
+        }
+      }
     },
     {
       "parameters": {
         "url": "https://api.perplexity.ai/chat/completions",
         "method": "POST",
-        "authentication": "genericHeader",
-        "genericAuthenticationHeader": "Authorization",
-        "genericAuthenticationValue": "=Bearer {{ $json.api_keys.PERPLEXITY_API_KEY }}",
+        "authentication": "headerAuth",
+        "nodeCredentialType": "perplexityApi",
         "headerParametersUi": {
           "parameter": [
             {
@@ -130,7 +150,13 @@
       "name": "Perplexity API",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
-      "position": [850, 400]
+      "position": [850, 400],
+      "credentials": {
+        "perplexityApi": {
+          "id": "perplexity-api-creds",
+          "name": "Perplexity API"
+        }
+      }
     },
     {
       "parameters": {
@@ -152,7 +178,34 @@
       "name": "Prepare Response",
       "type": "n8n-nodes-base.set",
       "typeVersion": 1,
-      "position": [1050, 300]
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C08E71W1C2V",
+          "mode": "list",
+          "cachedResultName": "n8n-enhance-message-test"
+        },
+        "text": "=New message from Universal Agents:\n\nUser: {{ $('Edit Fields').item.json[\"original-message\"] }}\n\nResponse: {{ $json.content?.[0]?.text || $json.choices?.[0]?.message?.content || $json.content || $json.response }}",
+        "otherOptions": {
+          "unfurl_links": false,
+          "unfurl_media": false
+        }
+      },
+      "id": "send-to-slack",
+      "name": "Send to Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [1450, 500],
+      "credentials": {
+        "slackApi": {
+          "id": "BNokhrU6KVKaB8Tq",
+          "name": "Slack account 3"
+        }
+      }
     }
   ],
   "connections": {
@@ -160,14 +213,14 @@
       "main": [
         [
           {
-            "node": "Extract API Keys",
+            "node": "Edit Fields",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Extract API Keys": {
+    "Edit Fields": {
       "main": [
         [
           {
@@ -210,6 +263,11 @@
             "node": "Prepare Response",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Send to Slack",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -221,6 +279,11 @@
             "node": "Prepare Response",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Send to Slack",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -230,6 +293,11 @@
         [
           {
             "node": "Prepare Response",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send to Slack",
             "type": "main",
             "index": 0
           }

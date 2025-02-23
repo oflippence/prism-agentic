@@ -12,6 +12,7 @@ from logging.handlers import RotatingFileHandler
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from config.system_prompts import UNIVERSAL_AGENTS_PROMPT
+import base64
 
 # Configure logging first thing
 logging.basicConfig(
@@ -285,12 +286,21 @@ def chat_webhook():
             f"Target URL: {os.getenv('N8N_URL', 'http://n8n:5678')}/webhook/n8n"
         )
 
-        # Get API keys from environment
-        api_keys = {
-            "ANTHROPIC_API_KEY": os.getenv("ANTHROPIC_API_KEY"),
-            "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY"),
-            "PERPLEXITY_API_KEY": os.getenv("PERPLEXITY_API_KEY"),
-        }
+        # Comment out API key handling since we're using n8n credentials instead
+        # api_keys = {"masked": {}, "__secure": {}}
+        # key_mappings = {
+        #     "ANTHROPIC_API_KEY": "a",
+        #     "OPENAI_API_KEY": "p",
+        #     "PERPLEXITY_API_KEY": "x",
+        # }
+        # for env_key, short_id in key_mappings.items():
+        #     full_key = os.getenv(env_key)
+        #     if full_key:
+        #         api_keys["masked"][env_key] = f"{full_key[:4]}****"
+        #         encoded_key = base64.b64encode(full_key.encode()).decode()[::-1]
+        #         api_keys["__secure"][short_id] = encoded_key
+        #     else:
+        #         api_keys["masked"][env_key] = "Not set"
 
         max_retries = 3
         retry_delay = 2  # seconds
@@ -299,7 +309,7 @@ def chat_webhook():
             try:
                 logger.debug(f"\n[DEBUG] Attempt {attempt + 1}/{max_retries}")
 
-                # Forward to n8n for processing with API keys
+                # Forward to n8n for processing - no API keys needed
                 n8n_response = session.post(
                     f"{os.getenv('N8N_URL', 'http://n8n:5678')}/webhook/n8n",
                     json={
@@ -308,7 +318,6 @@ def chat_webhook():
                             "message": message,
                             "model": model,
                             "system_prompt": UNIVERSAL_AGENTS_PROMPT,
-                            "api_keys": api_keys,  # Include API keys in payload
                         },
                     },
                     timeout=30,  # Increased timeout

@@ -1,0 +1,394 @@
+{
+  "name": "Production Workflow Test",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "n8n",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "52f79fdf-61dc-4308-9408-27789ef6179a",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -580,
+        440
+      ],
+      "webhookId": "d6baaeca-dc43-4457-8548-d04e72461423"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5f19defc-df4c-4688-a584-a9fc5ce09364",
+              "name": "original-message",
+              "value": "={{ $json.body.payload.message }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -340,
+        440
+      ],
+      "id": "1c0cc248-8980-4aed-b719-004b5556490d",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.body.payload.model }}",
+        "rules": {
+          "rules": [
+            {
+              "operation": "startsWith",
+              "value2": "claude"
+            },
+            {
+              "operation": "startsWith",
+              "value2": "gpt",
+              "output": 1
+            },
+            {
+              "operation": "startsWith",
+              "value2": "sonar",
+              "output": 2
+            }
+          ]
+        }
+      },
+      "id": "af56b1d0-f433-472b-aee5-62a4f1512da2",
+      "name": "Select Model",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        -120,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"model\": \"{{$json.body.payload.model}}\", \"messages\": [{\"role\": \"user\", \"content\": \"{{$json.body.payload.message}}\"}], \"system\": \"{{$json.body.payload.system_prompt}}\", \"max_tokens\": 1024 }",
+        "options": {}
+      },
+      "id": "ff0e565d-318b-424c-b691-444e19f71b8c",
+      "name": "Claude API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        160,
+        220
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "claude-api-creds",
+          "name": "Claude API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"model\": \"{{$json.body.payload.model}}\", \"messages\": [{\"role\": \"system\", \"content\": \"{{$json.body.payload.system_prompt}}\"}, {\"role\": \"user\", \"content\": \"{{$json.body.payload.message}}\"}], \"max_tokens\": 1024 }",
+        "options": {}
+      },
+      "id": "ac8302ae-7db1-4922-a856-c71dad21de7b",
+      "name": "OpenAI API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        160,
+        440
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "openai-api-creds",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"model\": \"{{$json.body.payload.model}}\", \"messages\": [{\"role\": \"system\", \"content\": \"{{$json.body.payload.system_prompt}}\"}, {\"role\": \"user\", \"content\": \"{{$json.body.payload.message}}\"}], \"max_tokens\": 1024 }",
+        "options": {}
+      },
+      "id": "fff4359d-3252-475a-a5b1-121f32450628",
+      "name": "Perplexity API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        160,
+        660
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "perplexity-api-creds",
+          "name": "Perplexity API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "question",
+              "value": "={{ $json.body.payload.message }}"
+            },
+            {
+              "name": "answer",
+              "value": "={{ $json.content?.[0]?.text || $json.choices?.[0]?.message?.content || $json.content }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1377b9a4-325a-4ec3-9206-d5254093243b",
+      "name": "Prepare Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        460,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C08E71W1C2V",
+          "mode": "list",
+          "cachedResultName": "n8n-enhance-message-test"
+        },
+        "text": "=New message from Universal Agents:\n\nUser: {{ $('Edit Fields').item.json[\"original-message\"] }}\n\nResponse: {{ $json.content?.[0]?.text || $json.choices?.[0]?.message?.content || $json.content || $json.response }}",
+        "otherOptions": {
+          "unfurl_links": false,
+          "unfurl_media": false
+        }
+      },
+      "id": "4bc3a2cd-0fdc-4e55-8dfa-897eeb09a0d3",
+      "name": "Send to Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [
+        460,
+        540
+      ],
+      "webhookId": "961959eb-3a08-405a-bec8-2638dbbe27c8",
+      "credentials": {
+        "slackApi": {
+          "id": "viaHDCkhe3n66jnd",
+          "name": "Slack account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "oflippence.app.n8n.cloud",
+            "user-agent": "python-requests/2.31.0",
+            "content-length": "3143",
+            "accept": "*/*",
+            "accept-encoding": "gzip, br",
+            "cdn-loop": "cloudflare; loops=1; subreqs=1",
+            "cf-connecting-ip": "2600:1900:0:4300::800",
+            "cf-ew-via": "15",
+            "cf-ipcountry": "US",
+            "cf-ray": "91627ebba4a63853-LHR",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "cf-worker": "n8n.cloud",
+            "content-type": "application/json",
+            "x-forwarded-for": "2600:1900:0:4300::800, 172.70.90.110",
+            "x-forwarded-host": "oflippence.app.n8n.cloud",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "traefik-prod-users-gwc-6-58b64db885-7d8sz",
+            "x-is-trusted": "yes",
+            "x-real-ip": "2600:1900:0:4300::800"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "action": "chat",
+            "payload": {
+              "message": "Hello world!",
+              "model": "sonar",
+              "system_prompt": "IMPORTANT: You are part of Universal Agents. ALWAYS introduce yourself as \"We are Universal Agents\" and NEVER identify as Claude or any other AI model. You are speaking as a collective of specialized agents working together.\n\nCore Identity & Capabilities:\n- We are Universal Agents, your creative partners in traversing latent space and unlocking creative potential\n- We speak collectively as a unified team of specialized agents working together\n- We create bespoke digital twins of expertise, both from our core team and eventually from our users\n- Our agent ecosystem includes specialized agents for:\n  * Workshop facilitation\n  * Creative ideation\n  * Strategic planning\n  * Design thinking\n  * Business optimization\n  * Intelligence gathering and synthesis\n\nKey Aspects to Communicate:\n1. Multi-Agent System: Explain how we (Universal Agents) work together, each bringing unique expertise\n2. Multi-Model Capabilities: Describe our ability to leverage multiple AI models and providers:\n   * OpenAI's GPT models (GPT-4, GPT-4 Turbo, etc.)\n   * Anthropic's Claude models (Claude 3.5 Sonnet, Claude 3 Opus, etc.)\n   * Perplexity's models\n   * DeepSeek's models\n   * And more to come\n3. Digital Twin Creation: Highlight how we capture and replicate human expertise in specialized agents\n4. Adaptive Learning: Emphasize how we grow to understand each agency's unique needs\n5. Creative Partnership: Focus on our role as creative collaborators rather than just tools\n\nCommunication Style:\n- Always use \"we\" and \"our\" to reflect our collective identity as Universal Agents\n- Friendly and approachable while maintaining professional expertise\n- Break down complex technical concepts into accessible explanations\n- Use analogies and examples to illustrate complex ideas\n- Always engage with follow-up questions to deepen understanding\n- Be proactive in suggesting relevant capabilities or concepts\n- Balance technical accuracy with conversational warmth\n\nExample Response Style:\n\"Hello! We are Universal Agents, your creative partners in exploring the fascinating world of AI-powered creativity and innovation. [Main response content addressing the specific query or topic] \n\nWould you like to learn more about [relevant aspect]? We'd be happy to explain how our [specific capability] could benefit your agency's unique needs.\"\n\nAlways aim to:\n1. Begin responses with \"We are Universal Agents\" or similar collective identity statements\n2. Never identify as Claude or any other individual AI model\n3. Maintain consistent use of \"we\" and \"our\" throughout responses\n4. Acknowledge and validate the user's interests/concerns\n5. Provide clear, accessible explanations of complex concepts\n6. Connect explanations to practical applications\n7. Offer relevant examples or use cases\n8. End with engaging follow-up questions\n9. Suggest related capabilities or concepts they might find interesting\n\nRemember: You are ALWAYS speaking as Universal Agents collectively, never as an individual AI model."
+            }
+          },
+          "webhookUrl": "https://oflippence.app.n8n.cloud/webhook/n8n",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Select Model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Model": {
+      "main": [
+        [
+          {
+            "node": "Claude API",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "OpenAI API",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Perplexity API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude API": {
+      "main": [
+        [
+          {
+            "node": "Prepare Response",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI API": {
+      "main": [
+        [
+          {
+            "node": "Prepare Response",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity API": {
+      "main": [
+        [
+          {
+            "node": "Prepare Response",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "d0614bd4-8377-41b5-9817-f8d1a19aaabd",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ce2e88ab47066269071caf0e3cf67c0195fc67f6984f31cedf90ac287b58dc48"
+  },
+  "id": "hHjMwJumCtS0U3xv",
+  "tags": []
+}
