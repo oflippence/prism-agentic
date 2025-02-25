@@ -1,0 +1,268 @@
+{
+  "name": "Diagnostic Vector Search",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        300
+      ],
+      "id": "chat-trigger-node",
+      "name": "When chat message received"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log the incoming message\nconst input = $input.all()[0].json;\nconsole.log('Input message:', input);\n\nreturn {\n  query: input.chatInput,\n  json: input\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ],
+      "id": "input-debug-node",
+      "name": "Debug Input"
+    },
+    {
+      "parameters": {
+        "model": "text-embedding-3-small",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        400,
+        300
+      ],
+      "id": "embeddings-node",
+      "name": "Generate Embeddings",
+      "credentials": {
+        "openAiApi": {
+          "id": "Y3Anul2algxqmKmj",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log the embedding input\nconst input = $input.all()[0].json;\nconsole.log('Input to embeddings:', input);\n\n// Pass through the input\nreturn input;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        400,
+        500
+      ],
+      "id": "pre-embeddings-debug",
+      "name": "Debug Pre-Embeddings"
+    },
+    {
+      "parameters": {
+        "tableName": {
+          "__rl": true,
+          "value": "document_embeddings",
+          "mode": "list",
+          "cachedResultName": "document_embeddings"
+        },
+        "options": {
+          "similarity_threshold": 0.7,
+          "limit": 5
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1,
+      "position": [
+        600,
+        300
+      ],
+      "id": "vector-store-node",
+      "name": "Supabase Vector Store",
+      "credentials": {
+        "supabaseApi": {
+          "id": "b9SOswaBFyCsW4fq",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "document_embeddings",
+        "description": "Search vector store for relevant documents"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolVectorStore",
+      "typeVersion": 1,
+      "position": [
+        800,
+        300
+      ],
+      "id": "vector-store-tool",
+      "name": "Vector Store Tool"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log the vector store results\nconst results = $input.all()[0].json;\nconsole.log('Vector store results:', results);\n\n// Format results for better readability\nconst formattedResults = {\n  matchCount: results.length,\n  matches: results.map(r => ({\n    similarity: r.similarity,\n    content: r.chunk_text,\n    metadata: r.metadata\n  }))\n};\n\nreturn formattedResults;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        800,
+        500
+      ],
+      "id": "vector-results-debug",
+      "name": "Debug Vector Results"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a helpful assistant. Use the provided context to answer questions accurately. If you cannot find relevant information in the context, say so clearly."
+            },
+            {
+              "role": "user",
+              "content": "={{ \n  'Question: ' + $input.all()[0].json.query + '\\n\\n' +\n  'Context: ' + JSON.stringify($input.all()[1].json.matches.map(m => m.content).join('\\n'))\n}}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0
+        }
+      },
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        300
+      ],
+      "id": "ai-response-node",
+      "name": "Generate AI Response",
+      "credentials": {
+        "openAiApi": {
+          "id": "Y3Anul2algxqmKmj",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log the final AI response\nconst response = $input.all()[0].json;\nconsole.log('AI Response:', response);\n\nreturn {\n  query: $input.all()[1].json.query,\n  context: $input.all()[1].json.matches,\n  response: response.response\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        300
+      ],
+      "id": "final-debug-node",
+      "name": "Debug Final Response"
+    }
+  ],
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Debug Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Debug Input": {
+      "main": [
+        [
+          {
+            "node": "Generate Embeddings",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Pre-Embeddings Debug",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Embeddings": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store": {
+      "ai_vectorStore": [
+        [
+          {
+            "node": "Vector Store Tool",
+            "type": "ai_vectorStore",
+            "index": 0
+          }
+        ]
+      ],
+      "main": [
+        [
+          {
+            "node": "Debug Vector Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vector Store Tool": {
+      "main": [
+        [
+          {
+            "node": "Generate AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Debug Vector Results": {
+      "main": [
+        [
+          {
+            "node": "Generate AI Response",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Generate AI Response": {
+      "main": [
+        [
+          {
+            "node": "Debug Final Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "diagnostic-vector-search-v2",
+  "meta": {
+    "instanceId": "7d772b4433e23b35cf3a147f8350f4c70d34366d4a860615e17e6d8a252774c3"
+  },
+  "tags": []
+} 

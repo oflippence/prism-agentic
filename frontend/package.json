@@ -37,6 +37,8 @@
 		"@fortawesome/pro-regular-svg-icons": "^6.5.2",
 		"@fortawesome/pro-solid-svg-icons": "^6.5.2",
 		"@fortawesome/pro-thin-svg-icons": "^6.5.2",
+		"@supabase/ssr": "^0.5.2",
+		"@supabase/supabase-js": "^2.48.1",
 		"daisyui": "^4.12.23"
 	}
 }

@@ -1,0 +1,14 @@
+{
+  "name": "supabase-schema-fix",
+  "version": "1.0.0",
+  "description": "Script to fix Supabase schema",
+  "type": "module",
+  "scripts": {
+    "fix-schema": "npx ts-node run-fix-schema.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+} 

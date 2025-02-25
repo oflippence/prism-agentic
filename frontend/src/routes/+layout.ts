@@ -1,11 +1,15 @@
 import { browser } from '$app/environment';
 import { redirect } from '@sveltejs/kit';
 import type { LayoutLoad } from './$types';
+import { createClient } from '$lib/supabase/_archive/client'
+import type { Session } from '@supabase/supabase-js'
 
-export const load: LayoutLoad = async ({ url }) => {
+export const load: LayoutLoad = async ({ url, depends }) => {
     // Don't protect the login page
     if (url.pathname === '/login') {
-        return {};
+        return {
+            session: null
+        }
     }
 
     // Only check sessionStorage in the browser
@@ -13,5 +17,16 @@ export const load: LayoutLoad = async ({ url }) => {
         throw redirect(303, `/login?returnTo=${url.pathname}`);
     }
 
-    return {};
+    depends('supabase:auth')
+
+    const supabase = createClient()
+
+    const {
+        data: { session },
+    } = await supabase.auth.getSession()
+
+    return {
+        supabase,
+        session
+    }
 }; 
