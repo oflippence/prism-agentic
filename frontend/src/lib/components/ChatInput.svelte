@@ -7,7 +7,7 @@
 
   const dispatch = createEventDispatcher();
   let inputValue = '';
-  let selectedModel = 'claude-3-5-sonnet-20240620';
+  let selectedModel = 'claude-3-7-sonnet-20250219';
   let isLoading = false;
 
   // Get backend URL from centralized config
@@ -134,7 +134,8 @@
         >
           <!-- Anthropic Models -->
           <optgroup label="Anthropic">
-            <option value="claude-3-5-sonnet-20240620">Claude 3.5 Sonnet</option>
+            <option value="claude-3-7-sonnet-20250219">Claude 3.7 Sonnet</option>
+            <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
             <option value="claude-3-opus-20240229">Claude 3 Opus</option>
             <option value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</option>
           </optgroup>

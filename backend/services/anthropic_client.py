@@ -27,7 +27,7 @@ class AnthropicClient:
         self.client = Anthropic(api_key=api_key)
 
     def generate_response(
-        self, prompt, system_prompt=None, model="claude-3-5-sonnet-20240620"
+        self, prompt, system_prompt=None, model="claude-3-7-sonnet-20250219"
     ):
         """Generate a response using the Anthropic API
 
@@ -35,7 +35,8 @@ class AnthropicClient:
             prompt (str): The user's input message
             system_prompt (str, optional): The system prompt to use. If None, no system prompt is used.
             model (str): The model to use for generation. Available models:
-                - claude-3-5-sonnet-20240620 (Most Intelligent)
+                - claude-3-7-sonnet-20250219 (Latest Flagship)
+                - claude-3-5-sonnet-20241022 (Latest Sonnet)
                 - claude-3-opus-20240229 (Complex Tasks)
                 - claude-3-5-haiku-20241022 (Latest Fast Haiku)
         """

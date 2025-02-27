@@ -108,6 +108,8 @@
     },
     {
       "parameters": {
+        "chunkSize": 800,
+        "chunkOverlap": 160,
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
@@ -182,7 +184,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "a7af460b-7c91-4b03-9070-2e29042ab2d6",
+  "versionId": "69c8f204-dc28-4999-8df3-d0575633d60d",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "7d772b4433e23b35cf3a147f8350f4c70d34366d4a860615e17e6d8a252774c3"

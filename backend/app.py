@@ -228,7 +228,7 @@ def enhance_message():
     try:
         data = request.json
         message = data.get("message")
-        model = data.get("model", "claude-3-5-sonnet-20240620")
+        model = data.get("model", "claude-3-7-sonnet-20250219")
         enhancement_type = data.get("enhancement_type", "all")
 
         if not message:
@@ -274,7 +274,7 @@ def chat_webhook():
         logger.debug(f"Request data: {data}")
 
         message = data.get("message")
-        model = data.get("model", "claude-3-5-sonnet-20240620")
+        model = data.get("model", "claude-3-7-sonnet-20250219")
 
         if not message:
             return jsonify({"error": "No message provided"}), 400
@@ -466,7 +466,7 @@ def n8n_webhook():
         # Handle different workflow actions
         if action == "chat":
             message = payload.get("message")
-            model = payload.get("model", "claude-3-5-sonnet-20240620")
+            model = payload.get("model", "claude-3-7-sonnet-20250219")
 
             if not message:
                 return jsonify({"error": "No message provided"}), 400

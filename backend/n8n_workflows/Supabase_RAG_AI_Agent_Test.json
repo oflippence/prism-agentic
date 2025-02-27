@@ -10,7 +10,7 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
       "position": [
-        -420,
+        -480,
         340
       ],
       "credentials": {
@@ -30,7 +30,7 @@
       "typeVersion": 1,
       "position": [
         400,
-        300
+        280
       ],
       "credentials": {
         "openAiApi": {
@@ -38,20 +38,6 @@
           "name": "OpenAi account"
         }
       }
-    },
-    {
-      "parameters": {
-        "dataType": "binary",
-        "options": {}
-      },
-      "id": "61b6a99c-5746-43a6-a662-bfe4f367c10d",
-      "name": "Default Data Loader",
-      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
-      "typeVersion": 1,
-      "position": [
-        200,
-        820
-      ]
     },
     {
       "parameters": {
@@ -63,8 +49,8 @@
       "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
       "typeVersion": 1,
       "position": [
-        60,
-        820
+        160,
+        800
       ],
       "credentials": {
         "openAiApi": {
@@ -75,7 +61,7 @@
     },
     {
       "parameters": {
-        "name": "documents",
+        "name": "document_embeddings",
         "description": "Contains all the user's documents that you can check for context to answer user questions."
       },
       "id": "4390b581-7df6-4591-bcbc-897e75e25d62",
@@ -105,8 +91,8 @@
     },
     {
       "parameters": {
-        "content": "## Tool to Add a Document to Vector DB",
-        "height": 632,
+        "content": "## Tool to Add Binary Document to Vector DB",
+        "height": 572,
         "width": 1291,
         "color": 5
       },
@@ -146,7 +132,7 @@
       "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
       "typeVersion": 1,
       "position": [
-        -260,
+        -340,
         340
       ],
       "notesInFlow": false,
@@ -166,8 +152,8 @@
       "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
       "typeVersion": 1,
       "position": [
-        200,
-        1000
+        300,
+        940
       ]
     },
     {
@@ -204,7 +190,7 @@
         "promptType": "define",
         "text": "={{ $('When chat message received').item.json.chatInput }}",
         "options": {
-          "systemMessage": "You are a personal assistant who helps answer questions from a corpus of documents when you don't know the answer yourself."
+          "systemMessage": "You are a personal assistant who helps answer questions from a corpus of documents when you don't know the answer yourself. Make sure to query the Supabase vector store before using Wikipedia if the relevant information can't be sourced."
         }
       },
       "id": "8f63dd77-688b-45b8-985a-f7ff20f1a645",
@@ -220,12 +206,12 @@
       "parameters": {
         "tableName": {
           "__rl": true,
-          "value": "documents",
+          "value": "document_embeddings",
           "mode": "list",
-          "cachedResultName": "documents"
+          "cachedResultName": "document_embeddings"
         },
         "options": {
-          "queryName": "match_documents"
+          "queryName": "=match_documents"
         }
       },
       "id": "7e988082-6030-42ea-ae02-7d0dabc7455e",
@@ -235,34 +221,6 @@
       "position": [
         60,
         280
-      ],
-      "credentials": {
-        "supabaseApi": {
-          "id": "b9SOswaBFyCsW4fq",
-          "name": "Supabase account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "mode": "insert",
-        "tableName": {
-          "__rl": true,
-          "value": "documents",
-          "mode": "list",
-          "cachedResultName": "documents"
-        },
-        "options": {
-          "queryName": "match_documents"
-        }
-      },
-      "id": "8b5f623e-f1ed-446a-a630-25ddb14720ef",
-      "name": "Insert into Supabase Vectorstore",
-      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
-      "typeVersion": 1,
-      "position": [
-        140,
-        660
       ],
       "credentials": {
         "supabaseApi": {
@@ -290,7 +248,7 @@
       "typeVersion": 2,
       "position": [
         -640,
-        660
+        620
       ],
       "id": "935f8883-6d05-4091-b967-38feaabc2548",
       "name": "Webhook",
@@ -311,8 +269,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -160,
-        660
+        -80,
+        620
       ],
       "id": "6dc846b9-44c7-4a37-83b1-3eaac2df7fff",
       "name": "HTTP Request"
@@ -328,9 +286,9 @@
               "type": "string"
             },
             {
-              "id": "c892e965-8037-4085-ac53-e1dfb45d83af",
-              "name": "public_Url",
-              "value": "={{ $json.body.publicUrl }}",
+              "id": "39f3ad1f-270b-40d3-ae51-6f9d913bdd48",
+              "name": "content_hash",
+              "value": "={{ $json.body.contentHash }}",
               "type": "string"
             }
           ]
@@ -338,17 +296,342 @@
         "includeOtherFields": true,
         "options": {}
       },
-      "id": "bdd55fa4-a075-452b-b040-6db681451e41",
+      "id": "b2f915b1-0c87-4c17-aea2-e863a70388ff",
       "name": "Set File Name",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -400,
-        660
+        -360,
+        620
       ]
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "document_embeddings",
+          "mode": "list",
+          "cachedResultName": "document_embeddings"
+        },
+        "options": {
+          "queryName": "match_documents"
+        }
+      },
+      "id": "8b5f623e-f1ed-446a-a630-25ddb14720ef",
+      "name": "Insert into Supabase Vectorstore",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1,
+      "position": [
+        200,
+        620
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "b9SOswaBFyCsW4fq",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolWikipedia",
+      "typeVersion": 1,
+      "position": [
+        -200,
+        340
+      ],
+      "id": "5059dcaa-76d2-48f8-9571-4f397366762d",
+      "name": "Wikipedia"
+    },
+    {
+      "parameters": {
+        "model": "text-embedding-3-small",
+        "options": {}
+      },
+      "id": "8db1d105-95e3-4694-805a-20c7f3b4de21",
+      "name": "Embeddings OpenAI2",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1,
+      "position": [
+        160,
+        1400
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "Y3Anul2algxqmKmj",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Tool to Add PDF Document to Vector DB (Remove Unnecessary Metadata)",
+        "height": 572,
+        "width": 1291,
+        "color": 5
+      },
+      "id": "84e969aa-b857-4047-8b37-1ce57b6ad8a1",
+      "name": "Sticky Note3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -700,
+        1140
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "c50320e4-c296-45e9-a748-fe9103947b21",
+      "name": "Recursive Character Text Splitter1",
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        300,
+        1540
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "document_embeddings",
+          "mode": "list",
+          "cachedResultName": "document_embeddings"
+        },
+        "options": {
+          "queryName": "match_documents"
+        }
+      },
+      "id": "a239191e-4e76-42da-a98a-db6ba8fc18c7",
+      "name": "Insert into Supabase Vectorstore1",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1,
+      "position": [
+        200,
+        1220
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "b9SOswaBFyCsW4fq",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7d512370-1207-4503-8e21-10c3fd11a270",
+              "name": "text",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -20,
+        1220
+      ],
+      "id": "38eb5b42-2def-4b97-968a-becc7a5bb3c0",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "=document_name",
+                "value": "={{ $('Webhook').item.json.body.name }}"
+              },
+              {
+                "name": "content_hash",
+                "value": "={{ $('Webhook').item.json.body.contentHash }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "61b6a99c-5746-43a6-a662-bfe4f367c10d",
+      "name": "Binary Data Loader",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1,
+      "position": [
+        300,
+        780
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "document_name",
+                "value": "={{ $('Document Uploaded').item.json.body.name }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "71811b8d-705c-43e3-a017-514630ca5464",
+      "name": "JSON Data Loader",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1,
+      "position": [
+        300,
+        1380
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        -220,
+        1220
+      ],
+      "id": "8d6ebf31-0c71-4edd-b981-28a635cc6cd7",
+      "name": "Extract from PDF"
+    },
+    {
+      "parameters": {
+        "url": "={{$json.body.publicUrl}}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -420,
+        1220
+      ],
+      "id": "08a5b46e-28ca-4fa5-bccf-6590ec31d6e2",
+      "name": "Grab Supabase Document"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "process-document",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -640,
+        1220
+      ],
+      "id": "7819d17c-a332-4a4a-af7b-abde3f337b1a",
+      "name": "Document Uploaded",
+      "webhookId": "8b629070-60b5-42c7-985c-0513c5880e3e",
+      "disabled": true
     }
   ],
-  "pinData": {},
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "localhost:5678",
+            "connection": "keep-alive",
+            "content-length": "561",
+            "sec-ch-ua-platform": "\"macOS\"",
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Not(A:Brand\";v=\"99\", \"Brave\";v=\"133\", \"Chromium\";v=\"133\"",
+            "content-type": "application/json",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "sec-gpc": "1",
+            "accept-language": "en-GB,en;q=0.5",
+            "origin": "http://localhost:5173",
+            "sec-fetch-site": "same-site",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://localhost:5173/",
+            "accept-encoding": "gzip, deflate, br, zstd"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "documentId": 134,
+            "name": "Phil Stewart Counselling Agreement - Oliver Flippence - Signed.docx",
+            "filePath": "1740591593511-Phil Stewart Counselling Agreement - Oliver Flippence - Signed.docx",
+            "publicUrl": "https://girvgfxbwfdauzwwoecd.supabase.co/storage/v1/object/public/documents/1740591593511-Phil%20Stewart%20Counselling%20Agreement%20-%20Oliver%20Flippence%20-%20Signed.docx",
+            "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "contentHash": "97ef3ac9067ed59aa0281237762bc1c99e65b785575be2c5bc38795dc8e7b5ed",
+            "isUpdate": false
+          },
+          "webhookUrl": "http://localhost:5678/webhook/process-document",
+          "executionMode": "production"
+        }
+      }
+    ],
+    "Document Uploaded": [
+      {
+        "json": {
+          "headers": {
+            "host": "localhost:5678",
+            "connection": "keep-alive",
+            "content-length": "310",
+            "sec-ch-ua-platform": "\"macOS\"",
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
+            "sec-ch-ua": "\"Not(A:Brand\";v=\"99\", \"Brave\";v=\"133\", \"Chromium\";v=\"133\"",
+            "content-type": "application/json",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "sec-gpc": "1",
+            "accept-language": "en-GB,en;q=0.5",
+            "origin": "http://localhost:5173",
+            "sec-fetch-site": "same-site",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://localhost:5173/",
+            "accept-encoding": "gzip, deflate, br, zstd"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "documentId": 18,
+            "name": "PRISM Brief - Thorogood V1-2.pdf",
+            "filePath": "1740524963214-PRISM Brief - Thorogood V1-2.pdf",
+            "publicUrl": "https://girvgfxbwfdauzwwoecd.supabase.co/storage/v1/object/public/documents/1740524963214-PRISM%20Brief%20-%20Thorogood%20V1-2.pdf",
+            "mimeType": "application/pdf",
+            "isUpdate": false
+          },
+          "webhookUrl": "http://localhost:5678/webhook/process-document",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
   "connections": {
     "OpenAI Chat Model": {
       "ai_languageModel": [
@@ -405,17 +688,6 @@
         ]
       ]
     },
-    "Default Data Loader": {
-      "ai_document": [
-        [
-          {
-            "node": "Insert into Supabase Vectorstore",
-            "type": "ai_document",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Postgres Chat Memory": {
       "ai_memory": [
         [
@@ -431,7 +703,7 @@
       "ai_textSplitter": [
         [
           {
-            "node": "Default Data Loader",
+            "node": "Binary Data Loader",
             "type": "ai_textSplitter",
             "index": 0
           }
@@ -492,13 +764,122 @@
           }
         ]
       ]
+    },
+    "Wikipedia": {
+      "ai_tool": [
+        [
+          {
+            "node": "RAG AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert into Supabase Vectorstore": {
+      "main": [
+        []
+      ]
+    },
+    "Embeddings OpenAI2": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Insert into Supabase Vectorstore1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter1": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "JSON Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert into Supabase Vectorstore1": {
+      "main": [
+        []
+      ]
+    },
+    "Binary Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Insert into Supabase Vectorstore",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JSON Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Insert into Supabase Vectorstore1",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Insert into Supabase Vectorstore1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from PDF": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Grab Supabase Document": {
+      "main": [
+        [
+          {
+            "node": "Extract from PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Document Uploaded": {
+      "main": [
+        [
+          {
+            "node": "Grab Supabase Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": true,
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "fb02a7eb-acfe-41af-a876-9091f3dcb4f6",
+  "versionId": "936de1e8-f104-4f6a-9f7b-d2a2e481ee97",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "7d772b4433e23b35cf3a147f8350f4c70d34366d4a860615e17e6d8a252774c3"

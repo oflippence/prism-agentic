@@ -28,7 +28,8 @@ class UniversalAgents:
 
         if os.getenv("ANTHROPIC_API_KEY"):
             # Latest Claude models
-            self.available_clients["claude-3-5-sonnet-20240620"] = AnthropicClient()
+            self.available_clients["claude-3-7-sonnet-20250219"] = AnthropicClient()
+            self.available_clients["claude-3-5-sonnet-20241022"] = AnthropicClient()
             self.available_clients["claude-3-opus-20240229"] = AnthropicClient()
             self.available_clients["claude-3-5-haiku-20241022"] = AnthropicClient()
 
@@ -47,7 +48,7 @@ class UniversalAgents:
             self.available_clients["sonar-pro"] = PerplexityClient()
             self.available_clients["sonar"] = PerplexityClient()
 
-    def get_response(self, user_input, model="claude-3-5-sonnet-20240620"):
+    def get_response(self, user_input, model="claude-3-7-sonnet-20250219"):
         """Get response from selected AI provider"""
         try:
             if model not in self.available_clients:

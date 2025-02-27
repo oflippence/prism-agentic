@@ -10,6 +10,7 @@
     metadata: {
       publicUrl: string;
       type: string;
+      contentHash?: string;
     };
   }
 
@@ -51,14 +52,26 @@
     
     try {
       // Check if documents table exists with the correct structure
-      const { data, error } = await supabase
+      const { data: docData, error: docError } = await supabase
         .from('documents')
-        .select('id, name, file_path, content, metadata, embedding')
+        .select('id, name, file_path, metadata')
         .limit(1);
       
-      if (error) {
-        status = `Schema error: ${error.message}. Please run the n8n-compatible-schema.sql script.`;
-        console.error('Schema error:', error);
+      if (docError) {
+        status = `Schema error: ${docError.message}. Please run the n8n-compatible-schema.sql script.`;
+        console.error('Schema error:', docError);
+        return false;
+      }
+
+      // Check if document_embeddings table exists
+      const { data: embedData, error: embedError } = await supabase
+        .from('document_embeddings')
+        .select('id, document_id, content, embedding')
+        .limit(1);
+      
+      if (embedError && !embedError.message.includes('does not exist')) {
+        status = `Schema error: ${embedError.message}. Please run the n8n-compatible-schema.sql script.`;
+        console.error('Schema error:', embedError);
         return false;
       }
       
@@ -86,6 +99,25 @@
     }
   }
 
+  async function generateFileHash(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const arrayBuffer = e.target?.result as ArrayBuffer;
+          const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+          const hashArray = Array.from(new Uint8Array(hashBuffer));
+          const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+          resolve(hashHex);
+        } catch (error) {
+          reject(error);
+        }
+      };
+      reader.onerror = error => reject(error);
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
   async function uploadFile() {
     if (!fileInput.files?.length) {
       status = 'Please select a file';
@@ -104,13 +136,19 @@
     status = 'Uploading...';
 
     try {
-      // Check if a document with this name already exists
+      // Generate content hash first
+      status = 'Generating content hash...';
+      const contentHash = await generateFileHash(file);
+      console.log('Step 1 - Generated content hash:', contentHash);
+      
+      // Check if a document with this hash already exists
       const { data: existingDoc } = await supabase
         .from('documents')
-        .select('id, file_path')
-        .eq('name', file.name)
+        .select('id, file_path, content_hash')
+        .eq('content_hash', contentHash)
         .maybeSingle();
       
+      console.log('Step 2 - Existing doc check:', existingDoc);
       const isUpdate = !!existingDoc;
       
       // Upload file to storage
@@ -125,40 +163,61 @@
 
       // Get public URL
       const publicUrl = await getPublicUrl(filePath);
-      console.log('File uploaded, public URL:', publicUrl);
+      console.log('Step 3 - File uploaded, public URL:', publicUrl);
 
       // Create document metadata
       const metadata = {
         size: file.size,
         type: file.type,
         lastModified: file.lastModified,
-        publicUrl
+        publicUrl,
+        contentHash // Add content hash to metadata
       };
+      
+      console.log('Step 4 - Metadata with hash:', metadata);
 
       // Create or update document record using the upsert_document function
       const { error: rpcError, data: documentId } = await supabase
         .rpc('upsert_document', {
           doc_name: file.name,
           doc_file_path: filePath,
-          doc_metadata: metadata
+          doc_metadata: metadata,
+          doc_content_hash: contentHash // Ensure content hash is passed
         });
 
-      if (rpcError) throw rpcError;
+      if (rpcError) {
+        console.error('Step 5 - RPC Error:', rpcError);
+        throw rpcError;
+      }
+      
+      console.log('Step 5 - Document ID after upsert:', documentId);
       
       // Get the full document record
       const { data: document, error: docError } = await supabase
         .from('documents')
-        .select('*')
+        .select('*, content_hash') // Explicitly request content_hash
         .eq('id', documentId)
         .single();
         
       if (docError) throw docError;
       
-      console.log('Document record created or updated:', document);
+      console.log('Step 6 - Full document record:', document);
       processingStatus = `Document record ${isUpdate ? 'updated' : 'created'}. Starting processing...`;
       
-      // Trigger N8n workflow
-      await triggerDocumentProcessing(document, isUpdate);
+      // Create a complete document object with content hash
+      const completeDocument = {
+        ...document,
+        content_hash: contentHash, // Ensure content hash is included
+        metadata: {
+          ...document.metadata,
+          contentHash // Also include in metadata
+        }
+      };
+      
+      console.log('Step 7 - Complete document object:', completeDocument);
+      
+      // Trigger N8n workflow with complete document
+      await triggerDocumentProcessing(completeDocument, isUpdate);
       
     } catch (error) {
       const err = error as StorageError;
@@ -169,9 +228,14 @@
     }
   }
 
-  async function triggerDocumentProcessing(documentData: DocumentData, isUpdate: boolean = false) {
+  async function triggerDocumentProcessing(documentData: DocumentData & { content_hash?: string }, isUpdate: boolean = false) {
     try {
       processingStatus = 'Triggering document processing...';
+      
+      // Log the incoming document data
+      console.log('Webhook Step 1 - Document data received:', documentData);
+      console.log('Webhook Step 2 - Content hash from document:', documentData.content_hash);
+      console.log('Webhook Step 3 - Content hash from metadata:', documentData.metadata?.contentHash);
       
       // Create the payload
       const payload = {
@@ -180,10 +244,11 @@
         filePath: documentData.file_path,
         publicUrl: documentData.metadata.publicUrl,
         mimeType: documentData.metadata.type,
-        isUpdate: isUpdate // Add this flag to indicate if it's an update
+        contentHash: documentData.content_hash || documentData.metadata?.contentHash, // Try both locations
+        isUpdate: isUpdate
       };
       
-      console.log('Sending webhook payload:', payload);
+      console.log('Webhook Step 4 - Final payload:', payload);
       
       // Use fetch with a timeout to handle potential connection issues
       const controller = new AbortController();
