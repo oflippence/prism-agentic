@@ -39,6 +39,10 @@
 		"@fortawesome/pro-thin-svg-icons": "^6.5.2",
 		"@supabase/ssr": "^0.5.2",
 		"@supabase/supabase-js": "^2.48.1",
-		"daisyui": "^4.12.23"
+		"@types/dompurify": "^3.0.5",
+		"@types/marked": "^5.0.2",
+		"daisyui": "^4.12.23",
+		"dompurify": "^3.2.4",
+		"marked": "^15.0.7"
 	}
 }

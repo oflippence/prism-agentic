@@ -12,7 +12,7 @@ accesslog = "-"
 loglevel = "info"
 
 # Timeouts
-timeout = 120
+timeout = 420
 graceful_timeout = 30
 keepalive = 5
 

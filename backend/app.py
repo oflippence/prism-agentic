@@ -488,6 +488,96 @@ def n8n_webhook():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/welcome", methods=["POST"])
+def welcome_message():
+    """Handle welcome message request by forwarding to n8n"""
+    try:
+        logger.info("\n=== New Welcome Message Request ===")
+        logger.info(f"N8N URL: {os.getenv('N8N_URL', 'http://n8n:5678')}")
+
+        # Get the JSON data from the request
+        data = request.json
+        logger.info(f"Received data: {data}")
+
+        if not data or "chatInput" not in data:
+            return jsonify({"error": "No chatInput provided"}), 400
+
+        if "sessionId" not in data:
+            return jsonify({"error": "No sessionId provided"}), 400
+
+        # Forward to n8n using Docker service name with chatInput and sessionId at top level
+        n8n_response = session.post(
+            f"{os.getenv('N8N_URL', 'http://n8n:5678')}/welcome",  # Remove /webhook prefix
+            json={
+                "chatInput": data["chatInput"],  # Keep chatInput at top level
+                "sessionId": data["sessionId"],  # Include sessionId at top level
+            },
+            timeout=30,
+        )
+
+        logger.info(f"N8N Response Status: {n8n_response.status_code}")
+        logger.info(f"N8N Response: {n8n_response.text}")
+
+        if not n8n_response.ok:
+            error_message = (
+                f"n8n error (status {n8n_response.status_code}): {n8n_response.text}"
+            )
+            logger.error(error_message)
+            return jsonify({"error": error_message}), 502
+
+        return n8n_response.json()
+
+    except Exception as e:
+        error_message = f"Error processing welcome message: {str(e)}"
+        logger.error(error_message)
+        return jsonify({"error": error_message}), 500
+
+
+@app.route("/api/chat-v2", methods=["POST"])
+def chat_v2():
+    """Handle chat v2 requests by forwarding to n8n"""
+    try:
+        data = request.json
+        chat_input = data.get("chatInput")
+        model = data.get("model", "claude-3-7-sonnet-20250219")
+        session_id = data.get("sessionId")
+
+        if not chat_input:
+            return jsonify({"error": "No chatInput provided"}), 400
+
+        if not session_id:
+            return jsonify({"error": "No sessionId provided"}), 400
+
+        logger.info(
+            f"\nReceived chat v2 request - ChatInput: {chat_input}, Model: {model}, SessionId: {session_id}"
+        )
+
+        # Forward to n8n
+        n8n_response = session.post(
+            f"{os.getenv('N8N_URL', 'http://n8n:5678')}/webhook/chat-v2",
+            json={
+                "chatInput": chat_input,
+                "model": model,
+                "sessionId": session_id,
+            },
+            timeout=360,  # Increased timeout to 6 minutes for long-running workflows
+        )
+
+        if not n8n_response.ok:
+            error_message = (
+                f"n8n error (status {n8n_response.status_code}): {n8n_response.text}"
+            )
+            logger.error(error_message)
+            return jsonify({"error": error_message}), 502
+
+        return n8n_response.json()
+
+    except Exception as e:
+        error_message = f"Error processing chat v2 request: {str(e)}"
+        logger.error(error_message)
+        return jsonify({"error": error_message}), 500
+
+
 if __name__ == "__main__":
     try:
         # Use port 3001 for local development, but allow Railway to override

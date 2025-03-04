@@ -1,0 +1,326 @@
+{
+  "name": "Research Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "query"
+            },
+            {
+              "name": "model"
+            },
+            {
+              "name": "sessionId"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -20,
+        0
+      ],
+      "id": "bd28ac3b-1325-420b-bf3d-83b0e9740962",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a research orchestration agent that uses multiple models to conduct in-depth research. Take the incoming {{ $json.query }} exactly as it is and pass it to the 'OpenAI 4o-mini' and 'Anthropic 3.7 Sonnet' tools to conduct research via OpenAI's and Anthropic's API's using their flagship models and returned a combined analsysis, detailing out what each model came back with so user can identify where the research outcome came from.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        220,
+        0
+      ],
+      "id": "54b7fdb9-07f2-4e92-9661-e113ba4aa226",
+      "name": "Research Orchestration"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "gpt-4o"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        20,
+        200
+      ],
+      "id": "7b6a972e-d900-4001-8286-27ceaa9261f6",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "Y3Anul2algxqmKmj",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        600,
+        0
+      ],
+      "id": "3c42630a-a868-4479-906a-6d7617092f07",
+      "name": "Research Output"
+    },
+    {
+      "parameters": {
+        "name": "perplexityDeepResearch",
+        "description": "Call this tool to conduct deep research using Perplexities Deep Research model.",
+        "workflowId": {
+          "__rl": true,
+          "value": "K2IMgtFP15ouid4O",
+          "mode": "list",
+          "cachedResultName": "Perplexity Deep Research"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "query": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('query', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "query",
+              "displayName": "query",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2,
+      "position": [
+        260,
+        320
+      ],
+      "id": "867eac78-2630-4c3f-81c0-285f26acb6b7",
+      "name": "Perplexity Deep Research"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        140,
+        280
+      ],
+      "id": "4b6dbbc6-ed7f-42f1-ae1a-72c194ec8b0d",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "2KHju7Lk0oFI0log",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "openAI4oMini",
+        "description": "Call this tool when Open AI research required.",
+        "workflowId": {
+          "__rl": true,
+          "value": "iubIq5jvszPt9TEw",
+          "mode": "list",
+          "cachedResultName": "OpenAI 4o-mini"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "query": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('query', ``, 'string') }}"
+          },
+          "matchingColumns": [
+            "query"
+          ],
+          "schema": [
+            {
+              "id": "query",
+              "displayName": "query",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2,
+      "position": [
+        400,
+        340
+      ],
+      "id": "cbebed34-07c6-4d32-95a9-9c4fd3a7cbae",
+      "name": "Open AI 4o-mini"
+    },
+    {
+      "parameters": {
+        "name": "anthropic37Sonnet",
+        "description": "Call this tool when Anthropic Claude Sonnet research required.",
+        "workflowId": {
+          "__rl": true,
+          "value": "9Wr8C9NjzDBch36U",
+          "mode": "list",
+          "cachedResultName": "Anthropic 3.7 Sonnet"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "query": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('query', ``, 'string') }}"
+          },
+          "matchingColumns": [
+            "query"
+          ],
+          "schema": [
+            {
+              "id": "query",
+              "displayName": "query",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2,
+      "position": [
+        540,
+        320
+      ],
+      "id": "76489d70-7043-4bb6-8c68-200519c1d904",
+      "name": "Anthropic 3.7 Sonnet"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Research Orchestration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Research Orchestration",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Research Orchestration": {
+      "main": [
+        [
+          {
+            "node": "Research Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity Deep Research": {
+      "ai_tool": [
+        [
+          {
+            "node": "Research Orchestration",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Research Orchestration",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Open AI 4o-mini": {
+      "ai_tool": [
+        [
+          {
+            "node": "Research Orchestration",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic 3.7 Sonnet": {
+      "ai_tool": [
+        [
+          {
+            "node": "Research Orchestration",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "4e549099-fbbb-4bd4-88d9-f7779d4676b1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7d772b4433e23b35cf3a147f8350f4c70d34366d4a860615e17e6d8a252774c3"
+  },
+  "id": "wULkFu131s2V8DD7",
+  "tags": [
+    {
+      "name": "Agent",
+      "id": "si7AXfuzvys2I7qI",
+      "createdAt": "2025-03-03T14:25:11.355Z",
+      "updatedAt": "2025-03-03T14:25:11.355Z"
+    }
+  ]
+}

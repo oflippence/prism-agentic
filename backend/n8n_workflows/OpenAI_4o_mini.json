@@ -1,0 +1,113 @@
+{
+  "name": "OpenAI 4o-mini",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "query"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "c971d715-180a-4bb3-8529-53c824ef15de",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.query }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        200,
+        0
+      ],
+      "id": "fdcd2dbb-4335-4447-a7fa-1db64e8c10ee",
+      "name": "OpenAI 4o-mini",
+      "credentials": {
+        "openAiApi": {
+          "id": "Y3Anul2algxqmKmj",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        560,
+        0
+      ],
+      "id": "ec0606c2-2ee1-43a5-ae8d-a455bf9da6dd",
+      "name": "Response"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "OpenAI 4o-mini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI 4o-mini": {
+      "main": [
+        [
+          {
+            "node": "Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f5919112-7a48-40d9-8ede-ae8a27f836a6",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7d772b4433e23b35cf3a147f8350f4c70d34366d4a860615e17e6d8a252774c3"
+  },
+  "id": "iubIq5jvszPt9TEw",
+  "tags": [
+    {
+      "createdAt": "2025-03-03T13:51:43.898Z",
+      "updatedAt": "2025-03-03T14:25:18.622Z",
+      "id": "sIHTDOqzZDArei7d",
+      "name": "Model"
+    }
+  ]
+}

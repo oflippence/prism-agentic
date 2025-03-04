@@ -1,0 +1,111 @@
+{
+  "name": "Perplexity Deep Research",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "query"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "0eaa31ba-5a0a-4296-a6d9-4e2d8b908717",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.perplexity.ai/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.PERPLEXITY_API_KEY }}"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"model\": \"sonar-deep-research\", \"messages\": [{\"role\": \"user\", \"content\": \"{{ $json.query }}\"}], \"system\": \"Conduct deep brand and user research on users specifed subject.\", \"max_tokens\": 1024 }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "34b7cd07-0fa7-4b03-a145-710d96e82469",
+      "name": "Perplexity Deep Research"
+    },
+    {
+      "parameters": {
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        440,
+        0
+      ],
+      "id": "9c456e3c-6282-46cd-877a-8b540c44d181",
+      "name": "Response"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Perplexity Deep Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity Deep Research": {
+      "main": [
+        [
+          {
+            "node": "Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "b856eafd-7c7f-4726-ad53-d985e660c239",
+  "meta": {
+    "instanceId": "7d772b4433e23b35cf3a147f8350f4c70d34366d4a860615e17e6d8a252774c3"
+  },
+  "id": "K2IMgtFP15ouid4O",
+  "tags": [
+    {
+      "createdAt": "2025-03-03T13:51:43.898Z",
+      "updatedAt": "2025-03-03T14:25:18.622Z",
+      "id": "sIHTDOqzZDArei7d",
+      "name": "Model"
+    }
+  ]
+}

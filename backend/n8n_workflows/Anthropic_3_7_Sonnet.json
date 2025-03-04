@@ -1,0 +1,116 @@
+{
+  "name": "Anthropic 3.7 Sonnet",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "query"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "35dc5ba2-5f2d-4548-9ed8-29778d050e4a",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        440,
+        0
+      ],
+      "id": "3af7174c-1c86-4aaf-8876-ee3f0ca5a94c",
+      "name": "Response"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.ANTHROPIC_API_KEY }}"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n\"model\": \"claude-3-7-sonnet-20250219\",\n\"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"{{ $json.query }}\"\n    }\n  ],\n\"system\": \"Conduct brand and user research on users specifed subject.\",\n\"max_tokens\": 1024\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "b137906d-0ea0-495e-933a-bdbeb4b0e680",
+      "name": "Anthropic 3.7 Sonnet"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Anthropic 3.7 Sonnet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic 3.7 Sonnet": {
+      "main": [
+        [
+          {
+            "node": "Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "42448237-193b-4807-9aea-90f4e840a7ad",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7d772b4433e23b35cf3a147f8350f4c70d34366d4a860615e17e6d8a252774c3"
+  },
+  "id": "9Wr8C9NjzDBch36U",
+  "tags": [
+    {
+      "createdAt": "2025-03-03T13:51:43.898Z",
+      "updatedAt": "2025-03-03T14:25:18.622Z",
+      "id": "sIHTDOqzZDArei7d",
+      "name": "Model"
+    }
+  ]
+}

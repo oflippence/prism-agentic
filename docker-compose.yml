@@ -9,6 +9,8 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
     volumes:
       - ./backend:/app
     networks:
@@ -37,7 +39,7 @@ services:
       - N8N_EDITOR_BASE_URL=http://localhost:5678
       
       # Webhook and API authentication
-      - N8N_WEBHOOK_TEST_URL=http://n8n:5678/
+      - N8N_WEBHOOK_TEST_URL=${N8N_HOST:-http://n8n:5678}
       - N8N_WEBHOOK_URL=${N8N_HOST:-http://n8n:5678}
       - N8N_WEBHOOK_SECRET=${N8N_WEBHOOK_SECRET}
       
@@ -48,6 +50,10 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
+      
+      # Supabase credentials
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
       
       # Credentials encryption
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}

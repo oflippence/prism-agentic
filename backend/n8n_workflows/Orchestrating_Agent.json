@@ -1,0 +1,481 @@
+{
+  "name": "Orchestrating Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -20,
+        260
+      ],
+      "id": "6aaf980b-50aa-4176-9b64-d4f80f02be5c",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "Y3Anul2algxqmKmj",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        80,
+        340
+      ],
+      "id": "05c36852-95f7-4be7-aa21-c1e7505f3efd",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "2KHju7Lk0oFI0log",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "welcome",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -260,
+        -100
+      ],
+      "id": "50b92383-bbe5-4120-8212-cc1a1d050781",
+      "name": "On Page Load",
+      "webhookId": "3407af27-447f-401e-b344-5596c18f628d"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chat-v2",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -260,
+        100
+      ],
+      "id": "e5d85c3b-6170-42a5-8c1b-4178e4605858",
+      "name": "Chat Message",
+      "webhookId": "f8b2fbcb-1417-4a6f-9b88-a0f135423a4c"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are the Orchestration Agent for Prism, an advanced brand analysis platform. Your role is to greet users, collect initial information about their brand, and prepare for in-depth analysis.\n\nCAPABILITIES:\n- Access to conversation history via Postgres chat memory (make sure to use the current sessionID to access to current chat history)\n- Ability to receive document uploads (which will be automatically stored in VectorStor)\n- Forward brief to research agent tool when asked by the user\n\nCONVERSATION FLOW:\n1. Welcome the user to Prism and explain that we help analyze brands, conduct deep research, and create concrete strategies that surpass other market tools\n2. Ask which brand they would like to analyze\n3. After they respond, ask if they have any additional information or documents to share about the brand, instructing them to use the chat's attachment feature\n4. Once they've provided information and any attachments, thank them and inform them that you'll be creating their brand opportunity report together\n\nNOTE: Your role ends after collecting this initial information. Document processing and further analysis will be handled by the Research Agent in the next step."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        220,
+        0
+      ],
+      "id": "33644be0-63d9-43af-ad08-23e7ae336325",
+      "name": "Orchestrating Agent"
+    },
+    {
+      "parameters": {
+        "name": "researchAgent",
+        "description": "Call this tool to conduct in-depth research when required.",
+        "workflowId": {
+          "__rl": true,
+          "value": "wULkFu131s2V8DD7",
+          "mode": "list",
+          "cachedResultName": "Research Agent"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "query": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('query', ``, 'string') }}",
+            "model": "={{ $('Set Message').item.json.model }}",
+            "sessionId": "={{ $('Set Message').item.json.sessionId }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "query",
+              "displayName": "query",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "model",
+              "displayName": "model",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "sessionId",
+              "displayName": "sessionId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2,
+      "position": [
+        200,
+        380
+      ],
+      "id": "d4f8e035-5bd2-4c03-a537-eb0267d282cf",
+      "name": "Research Agent"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2f065986-8588-4f74-8de4-01c66199c1dc",
+              "name": "chatInput",
+              "value": "={{ $json.body.chatInput }}",
+              "type": "string"
+            },
+            {
+              "id": "0c9d2963-2631-462c-90b7-a1878682e4e3",
+              "name": "model",
+              "value": "={{ $json.body.model }}",
+              "type": "string"
+            },
+            {
+              "id": "3bef366c-011b-4d26-938e-37bda18e1c37",
+              "name": "sessionId",
+              "value": "={{ $json.body.sessionId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "5a84812c-d8a1-44ed-a427-c17decf2b8bd",
+      "name": "Set Message"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1a30b208-f3ac-40ca-afcb-3d03d8652728",
+              "name": "output",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            },
+            {
+              "id": "71784ee1-b760-4841-934d-ccdb90c24a2d",
+              "name": "sessionID",
+              "value": "={{ $('Set Message').item.json.sessionId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        580,
+        0
+      ],
+      "id": "bf699644-7b0b-4090-b858-96d1eaebb539",
+      "name": "Set Response"
+    },
+    {
+      "parameters": {
+        "tableName": {
+          "__rl": true,
+          "value": "document_embeddings",
+          "mode": "list",
+          "cachedResultName": "document_embeddings"
+        },
+        "options": {
+          "queryName": "match_documents"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1,
+      "position": [
+        380,
+        360
+      ],
+      "id": "e62843bf-c0ed-4cd5-95fe-9cd2b00e6ba0",
+      "name": "Supabase Vector Store",
+      "credentials": {
+        "supabaseApi": {
+          "id": "b9SOswaBFyCsW4fq",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        380,
+        540
+      ],
+      "id": "94920aad-af5f-40dd-a5e1-36762a4ff19f",
+      "name": "Embeddings OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "Y3Anul2algxqmKmj",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        720,
+        380
+      ],
+      "id": "2d9c1707-3d4a-4f58-a99c-c76596cbe692",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "Y3Anul2algxqmKmj",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "document_embeddings",
+        "description": "Contains all the user's documents that you can check for context to answer user questions."
+      },
+      "id": "80c6c373-32dc-4995-ba75-0e5d0f90a3f9",
+      "name": "Retrieve Documents",
+      "type": "@n8n/n8n-nodes-langchain.toolVectorStore",
+      "typeVersion": 1,
+      "position": [
+        460,
+        200
+      ]
+    }
+  ],
+  "pinData": {
+    "Chat Message": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n:5678",
+            "user-agent": "python-requests/2.31.0",
+            "accept-encoding": "gzip, deflate",
+            "accept": "*/*",
+            "connection": "keep-alive",
+            "content-length": "385",
+            "content-type": "application/json"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "chatInput": "Check my VectorStore database in regards to the Thorogood brief that I have and conduct some initial analysis based on the brief that's in my VectorStore and use the research agent to dive a little bit deeper and return the results for both ChatGPT, both Anthropic and OpenAI.",
+            "model": "claude-3-7-sonnet-20250219",
+            "sessionId": "caeb507c-e4e2-43b5-a479-7386ea607402"
+          },
+          "webhookUrl": "http://localhost:5678/webhook/chat-v2",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Orchestrating Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Orchestrating Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On Page Load": {
+      "main": [
+        [
+          {
+            "node": "Set Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Message": {
+      "main": [
+        [
+          {
+            "node": "Set Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Orchestrating Agent": {
+      "main": [
+        [
+          {
+            "node": "Set Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Research Agent": {
+      "ai_tool": [
+        [
+          {
+            "node": "Orchestrating Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Message": {
+      "main": [
+        [
+          {
+            "node": "Orchestrating Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Response": {
+      "main": [
+        []
+      ]
+    },
+    "Supabase Vector Store": {
+      "ai_tool": [
+        []
+      ],
+      "ai_vectorStore": [
+        [
+          {
+            "node": "Retrieve Documents",
+            "type": "ai_vectorStore",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Retrieve Documents",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retrieve Documents": {
+      "ai_tool": [
+        [
+          {
+            "node": "Orchestrating Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f6c80edf-9b85-42ed-94f1-aa5dc1a43fed",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7d772b4433e23b35cf3a147f8350f4c70d34366d4a860615e17e6d8a252774c3"
+  },
+  "id": "IADeBvg1H2TKymY2",
+  "tags": [
+    {
+      "createdAt": "2025-03-03T14:25:11.355Z",
+      "updatedAt": "2025-03-03T14:25:11.355Z",
+      "id": "si7AXfuzvys2I7qI",
+      "name": "Agent"
+    }
+  ]
+}
